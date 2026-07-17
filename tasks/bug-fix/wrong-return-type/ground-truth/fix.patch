@@ -1,0 +1,10 @@
+--- a/src/utils/format.ts
++++ b/src/utils/format.ts
+@@ -1,4 +1,4 @@
+-export function formatCurrency(amount: number): number {
+-  const rounded = Math.round(amount * 100) / 100;
+-  return rounded;
++export function formatCurrency(amount: number): string {
++  const rounded = Math.round(amount * 100) / 100;
++  return `$${rounded.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+ }

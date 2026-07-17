@@ -1,0 +1,20 @@
+--- a/src/handlers/user.ts
++++ b/src/handlers/user.ts
+@@ -10,9 +10,16 @@
+ /**
+  * Get a user's profile by userId.
+  */
+ export function getUserProfile(userId: string): ApiResponse {
+-  // BUG: non-null assertion hides the undefined case — crashes at runtime
+-  const user = findUser(userId)!;
++  const user = findUser(userId);
++
++  if (!user) {
++    return {
++      status: 404,
++      body: { error: "User not found" },
++    };
++  }
+
+   return {
+     status: 200,

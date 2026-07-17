@@ -1,0 +1,37 @@
+id: "bug-fix-006"
+name: "Incorrect timezone handling in date parser"
+category: "bug-fix"
+difficulty: "medium"
+language: "python"
+description: |
+  The parse_timestamp function in src/dateutil.py incorrectly handles
+  timezone-aware ISO 8601 timestamps. When parsing '2026-07-01T10:00:00+05:30',
+  it strips the timezone and treats the time as UTC, producing a 5.5-hour
+  error for IST timestamps. The function uses datetime.fromisoformat() but
+  then replaces tzinfo with None.
+goal: |
+  Fix parse_timestamp to correctly preserve timezone information from ISO 8601
+  strings. If a timezone offset is present, the returned datetime should be
+  timezone-aware. All existing tests must pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/dateutil.py"]
+  lines_changed: 4
+rubric:
+  - criterion: "parse_timestamp preserves timezone offset from input"
+    weight: 0.4
+    check: "test"
+  - criterion: "No hardcoded timezone values in fix"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 15

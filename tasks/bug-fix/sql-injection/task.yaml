@@ -1,0 +1,37 @@
+id: "bug-fix-007"
+name: "SQL injection in query builder"
+category: "bug-fix"
+difficulty: "medium"
+language: "python"
+description: |
+  The find_users function in src/db.py uses string formatting to build SQL
+  queries, making it vulnerable to SQL injection. Calling
+  find_users(name="'; DROP TABLE users; --") would execute arbitrary SQL.
+  The function uses f-strings to interpolate user input directly into the
+  query string.
+goal: |
+  Fix find_users to use parameterized queries instead of string formatting.
+  The function must be safe against SQL injection while preserving the same
+  query behavior. All existing tests must pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/db.py"]
+  lines_changed: 6
+rubric:
+  - criterion: "Uses parameterized queries (? placeholders) not string formatting"
+    weight: 0.5
+    check: "grep"
+  - criterion: "No f-string or format() in SQL execution"
+    weight: 0.2
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 15

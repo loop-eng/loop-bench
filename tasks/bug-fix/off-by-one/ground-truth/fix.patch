@@ -1,0 +1,13 @@
+--- a/src/utils/paginate.ts
++++ b/src/utils/paginate.ts
+@@ -18,8 +18,8 @@
+   const total = items.length;
+   const totalPages = Math.ceil(total / pageSize);
+
+-  const start = page * pageSize;
+-  const end = (page + 1) * pageSize;
++  const start = (page - 1) * pageSize;
++  const end = page * pageSize;
+   const data = items.slice(start, end);
+
+   return {

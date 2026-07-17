@@ -1,0 +1,10 @@
+--- a/src/dateutil.py
++++ b/src/dateutil.py
+@@ -13,8 +13,7 @@
+     Returns:
+         A datetime object representing the parsed timestamp.
+     """
+-    dt = datetime.fromisoformat(s)
+-    # Normalize to naive datetime for consistent handling
+-    return dt.replace(tzinfo=None)
++    return datetime.fromisoformat(s)

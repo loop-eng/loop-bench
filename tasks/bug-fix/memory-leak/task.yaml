@@ -1,0 +1,39 @@
+id: "bug-fix-005"
+name: "Memory leak in event emitter listener"
+category: "bug-fix"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The ConnectionTracker class in src/events/tracker.ts registers event
+  listeners on connection objects but never removes them when connections
+  close. Over time this causes memory to grow as hundreds of orphaned
+  listeners accumulate on the global EventEmitter. The destroy method
+  exists but doesn't clean up listeners.
+goal: |
+  Fix the ConnectionTracker so that all event listeners registered on a
+  connection are properly removed when the connection is destroyed. The
+  destroy method should remove all listeners it registered. All existing
+  tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/events/tracker.ts"]
+  lines_changed: 5
+rubric:
+  - criterion: "destroy() removes all event listeners it registered"
+    weight: 0.4
+    check: "grep"
+  - criterion: "No memory leak across track/destroy cycles"
+    weight: 0.3
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 15

@@ -1,0 +1,39 @@
+id: "bug-fix-009"
+name: "Deadlock in concurrent worker pool"
+category: "bug-fix"
+difficulty: "hard"
+language: "go"
+description: >
+  The worker pool in pool/pool.go deadlocks when all workers are busy and new tasks are
+  submitted. The Submit method blocks trying to send on the task channel, but the results
+  channel is also full because nobody is reading results yet. Workers can't finish because
+  they're blocked trying to send results, and Submit can't proceed because the task channel
+  is full.
+goal: >
+  Fix the worker pool so it never deadlocks regardless of how many tasks are submitted
+  relative to worker count and channel buffer sizes. Workers should be able to complete and
+  return results even when the results channel is temporarily full. All existing tests must
+  pass.
+repo:
+  base_image: "go"
+  setup_command: "go mod download"
+  test_command: "go test ./..."
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "pool/pool.go"
+  lines_changed: 12
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "Results channel is buffered or drained asynchronously"
+    weight: 0.4
+    check: "grep"
+  - criterion: "No deadlock with tasks > workers (100 tasks, 2 workers)"
+    weight: 0.3
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"

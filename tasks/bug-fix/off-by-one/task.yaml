@@ -1,0 +1,36 @@
+id: "bug-fix-002"
+name: "Off-by-one error in pagination"
+category: "bug-fix"
+difficulty: "easy"
+language: "typescript"
+description: |
+  The paginate function in src/utils/paginate.ts has an off-by-one error.
+  When requesting page 2 with pageSize 10 from a 25-item array, it returns
+  items 11-20 instead of items 10-19 (0-indexed). The last page also
+  includes one extra item from the next page.
+goal: |
+  Fix the paginate function to correctly slice arrays for any page number
+  and page size. Page numbers are 1-indexed. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/utils/paginate.ts"]
+  lines_changed: 2
+rubric:
+  - criterion: "Slice uses (page-1)*pageSize for start index"
+    weight: 0.4
+    check: "grep"
+  - criterion: "No hardcoded page numbers in fix"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

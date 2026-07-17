@@ -1,0 +1,44 @@
+id: "bug-fix-008"
+name: "Cross-module circular import causes undefined"
+category: "bug-fix"
+difficulty: "hard"
+language: "typescript"
+description: >
+  The application crashes at startup with 'TypeError: Cannot read properties of undefined
+  (reading UserRole)' caused by a circular import between src/models/user.ts and
+  src/models/order.ts. User imports Order for the orders field, and Order imports User for
+  the createdBy field, creating a circular dependency that causes one module to be undefined
+  when the other initializes.
+goal: >
+  Break the circular import dependency between user.ts and order.ts without changing the
+  public API of either module. Both modules should export the same types and functions.
+  Shared types should be extracted to a common location. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/models/user.ts"
+    - "src/models/order.ts"
+    - "src/models/types.ts"
+  lines_changed: 18
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "No direct import between user.ts and order.ts"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Shared types extracted to separate file"
+    weight: 0.3
+    check: "ast"
+  - criterion: "Public API unchanged (same exports)"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"

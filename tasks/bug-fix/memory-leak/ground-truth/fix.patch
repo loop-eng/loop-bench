@@ -1,0 +1,68 @@
+--- a/src/events/tracker.ts
++++ b/src/events/tracker.ts
+@@ -16,6 +16,7 @@
+ export class ConnectionTracker {
+   private events: TrackedEvent[] = [];
+   private destroyed = false;
+   private connections: Map<string, Connection> = new Map();
++  private listeners: Map<string, { event: string; handler: (...args: any[]) => void }[]> = new Map();
+
+   track(connection: Connection): void {
+     if (this.destroyed) {
+@@ -24,17 +25,19 @@
+
+     this.connections.set(connection.id, connection);
+
+-    connection.on("data", (data: unknown) => {
++    const dataHandler = (data: unknown) => {
+       this.events.push({
+         connectionId: connection.id,
+         type: "data",
+         data,
+         timestamp: Date.now(),
+       });
+-    });
++    };
+
+-    connection.on("error", (error: unknown) => {
++    const errorHandler = (error: unknown) => {
+       this.events.push({
+         connectionId: connection.id,
+         type: "error",
+         data: error,
+         timestamp: Date.now(),
+       });
+-    });
++    };
++
++    connection.on("data", dataHandler);
++    connection.on("error", errorHandler);
++
++    this.listeners.set(connection.id, [
++      { event: "data", handler: dataHandler },
++      { event: "error", handler: errorHandler },
++    ]);
+   }
+
+   getEvents(): TrackedEvent[] {
+@@ -49,7 +52,13 @@
+
+   destroy(): void {
+     this.destroyed = true;
+     this.events = [];
++
++    for (const [connId, handlers] of this.listeners) {
++      const conn = this.connections.get(connId);
++      if (conn) {
++        for (const { event, handler } of handlers) {
++          conn.removeListener(event, handler);
++        }
++      }
++    }
++
++    this.listeners.clear();
+     this.connections.clear();
+-    // BUG: listeners are never removed from connection objects
+-    // This causes a memory leak as orphaned listeners accumulate
+   }
+ }

@@ -1,0 +1,40 @@
+id: "bug-fix-010"
+name: "Silent data corruption in JSON serializer"
+category: "bug-fix"
+difficulty: "hard"
+language: "python"
+description: >
+  The serialize_record function in src/serializer.py silently corrupts data when serializing
+  records containing bytes fields or datetime objects. Bytes are converted to their repr()
+  string instead of base64, and datetime objects are serialized with str() which drops
+  timezone info. The deserialized data doesn't match the original, but no error is raised.
+goal: >
+  Fix serialize_record to correctly handle bytes (base64 encode) and datetime (ISO 8601
+  with timezone) fields. Add a corresponding deserialize_record function that can roundtrip
+  all supported types. The serialized output must be valid JSON. All existing tests must pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/serializer.py"
+  lines_changed: 8
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "bytes fields are base64 encoded in serialized output"
+    weight: 0.3
+    check: "grep"
+  - criterion: "datetime objects include timezone in ISO 8601 format"
+    weight: 0.3
+    check: "test"
+  - criterion: "roundtrip: deserialize(serialize(x)) == x for all types"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"

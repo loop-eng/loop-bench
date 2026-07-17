@@ -1,0 +1,60 @@
+--- a/src/serializer.py
++++ b/src/serializer.py
+@@ -1,5 +1,7 @@
+ """Record serializer for converting Python dicts to JSON strings."""
+
++import base64
++from datetime import datetime
+ import json
+ from typing import Any
+
+@@ -10,7 +12,13 @@
+     NOTE: This silently converts unknown types to their string
+     representation, which loses type information and may corrupt data.
+     """
+-    return str(obj)
++    if isinstance(obj, bytes):
++        return {"__type__": "bytes", "value": base64.b64encode(obj).decode("ascii")}
++    if isinstance(obj, datetime):
++        return {"__type__": "datetime", "value": obj.isoformat()}
++    raise TypeError(
++        f"Object of type {type(obj).__name__} is not JSON serializable"
++    )
+
+
+ def serialize_record(record: dict[str, Any]) -> str:
+@@ -26,3 +34,34 @@
+         JSON string representation of the record.
+     """
+     return json.dumps(record, default=_default_handler, sort_keys=True)
++
++
++def _decode_typed_values(obj: Any) -> Any:
++    """Recursively decode type-wrapped values in parsed JSON."""
++    if isinstance(obj, dict):
++        if "__type__" in obj and "value" in obj:
++            type_tag = obj["__type__"]
++            if type_tag == "bytes":
++                return base64.b64decode(obj["value"])
++            if type_tag == "datetime":
++                return datetime.fromisoformat(obj["value"])
++        return {k: _decode_typed_values(v) for k, v in obj.items()}
++    if isinstance(obj, list):
++        return [_decode_typed_values(item) for item in obj]
++    return obj
++
++
++def deserialize_record(json_str: str) -> dict[str, Any]:
++    """Deserialize a JSON string back to a record dict.
++
++    Reverses serialize_record, restoring bytes and datetime objects
++    from their type-tagged representations.
++
++    Args:
++        json_str: JSON string produced by serialize_record.
++
++    Returns:
++        Dictionary with original Python types restored.
++    """
++    parsed = json.loads(json_str)
++    return _decode_typed_values(parsed)

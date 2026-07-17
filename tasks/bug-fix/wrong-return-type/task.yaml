@@ -1,0 +1,37 @@
+id: "bug-fix-001"
+name: "Wrong return type in currency formatter"
+category: "bug-fix"
+difficulty: "easy"
+language: "typescript"
+description: |
+  The formatCurrency function in src/utils/format.ts is supposed to return a
+  formatted currency string like "$1,234.56", but it returns a number instead.
+  This causes a runtime TypeError in src/components/PriceDisplay.ts when
+  calling .toUpperCase() on the result, because numbers don't have that method.
+goal: |
+  Fix the formatCurrency function so it returns a properly formatted string.
+  The function should accept a number and return a string with dollar sign,
+  comma separators, and two decimal places. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/utils/format.ts"]
+  lines_changed: 2
+rubric:
+  - criterion: "formatCurrency returns a string type"
+    weight: 0.4
+    check: "ast"
+  - criterion: "No type assertion or @ts-ignore workarounds"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

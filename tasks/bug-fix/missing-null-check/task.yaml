@@ -1,0 +1,36 @@
+id: "bug-fix-003"
+name: "Missing null check crashes API handler"
+category: "bug-fix"
+difficulty: "easy"
+language: "typescript"
+description: |
+  The getUserProfile handler in src/handlers/user.ts crashes with
+  'Cannot read properties of undefined' when called with a userId that
+  doesn't exist in the database. The findUser function in src/db/users.ts
+  returns undefined for missing users, but the handler doesn't check for this.
+goal: |
+  Add proper null/undefined checking in the getUserProfile handler so it
+  returns a 404 response instead of crashing. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/handlers/user.ts"]
+  lines_changed: 5
+rubric:
+  - criterion: "Handler checks for undefined/null before accessing user properties"
+    weight: 0.4
+    check: "grep"
+  - criterion: "Returns 404 status for missing users"
+    weight: 0.3
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

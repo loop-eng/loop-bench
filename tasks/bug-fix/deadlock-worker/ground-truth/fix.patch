@@ -1,0 +1,44 @@
+--- a/pool/pool.go
++++ b/pool/pool.go
+@@ -30,8 +30,8 @@
+ func New(workers int) *Pool {
+ 	return &Pool{
+ 		workers: workers,
+-		tasks:   make(chan Task),   // BUG: unbuffered
+-		results: make(chan Result), // BUG: unbuffered - causes deadlock
++		tasks:   make(chan Task, workers),       // buffered to worker count
++		results: make(chan Result, workers*10),   // buffered to prevent blocking
+ 	}
+ }
+
+@@ -43,23 +43,22 @@
+ 			defer p.wg.Done()
+ 			for task := range p.tasks {
+ 				value, err := task.Fn(task.Payload)
+-				// BUG: This blocks if results channel is full,
+-				// which prevents the worker from picking up more tasks.
+-				// If all workers are blocked here and Submit is blocked
+-				// trying to send a task, we have a deadlock.
+-				p.results <- Result{
++				// Send result without blocking the worker.
++				// The buffered results channel and goroutine wrapper
++				// ensure workers can always continue processing tasks.
++				go func(r Result) {
++					p.results <- r
++				}(Result{
+ 					TaskID: task.ID,
+ 					Value:  value,
+ 					Err:    err,
+-				}
++				})
+ 			}
+ 		}()
+ 	}
+ }
+
+ // Submit sends a task to the pool for processing.
+-// BUG: This blocks if the tasks channel is full (unbuffered),
+-// creating a deadlock when workers are blocked on results.
+ func (p *Pool) Submit(task Task) {
+ 	p.tasks <- task
+ }

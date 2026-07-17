@@ -1,0 +1,21 @@
+--- a/src/db.py
++++ b/src/db.py
+@@ -57,11 +57,15 @@
+     Returns:
+         A list of user dicts with id, name, email, and active fields.
+     """
+     query = "SELECT * FROM users WHERE 1=1"
++    params: list = []
++
+     if name is not None:
+-        query += f" AND name = '{name}'"
++        query += " AND name = ?"
++        params.append(name)
+     if email is not None:
+-        query += f" AND email = '{email}'"
++        query += " AND email = ?"
++        params.append(email)
+
+-    cursor = conn.execute(query)
++    cursor = conn.execute(query, params)
+     return [dict(row) for row in cursor.fetchall()]

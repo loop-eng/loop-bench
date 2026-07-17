@@ -1,0 +1,37 @@
+id: "bug-fix-004"
+name: "Race condition in async request counter"
+category: "bug-fix"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The RequestCounter class in src/middleware/counter.ts tracks concurrent
+  requests but has a race condition. When multiple requests arrive
+  simultaneously, the counter can go negative because decrement runs before
+  increment finishes writing. The counter is used for rate limiting and a
+  negative count bypasses limits.
+goal: |
+  Fix the race condition in RequestCounter so the count never goes negative
+  and concurrent increments/decrements are safe. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/middleware/counter.ts"]
+  lines_changed: 20
+rubric:
+  - criterion: "Uses mutex, lock, or queue to serialize access"
+    weight: 0.4
+    check: "grep"
+  - criterion: "Count never goes negative under concurrent load"
+    weight: 0.3
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.3
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 15
