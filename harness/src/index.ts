@@ -40,3 +40,9 @@ export { validateTask, validateResult } from "./validate.js";
 
 export type { SandboxOptions, ExecResult } from "./docker.js";
 export { Sandbox, createSandbox, getBaseImage } from "./docker.js";
+
+export type { LoadOptions, LoadResult, TaskLoadError } from "./loader.js";
+export { loadTasks, loadSingleTask, resolveTaskDir } from "./loader.js";
+
+export type { LtfEvent, LtfSummary } from "./ltf-collector.js";
+export { parseLtfTrace, computeLtfSummary } from "./ltf-collector.js";

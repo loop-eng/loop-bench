@@ -1,8 +1,12 @@
 import { resolve } from "node:path";
-import type { TaskDefinition, BenchmarkResult } from "./types.js";
+import { mkdirSync, existsSync } from "node:fs";
+import type { TaskDefinition, BenchmarkResult, BenchmarkMetrics } from "./types.js";
 import type { LoopAdapter } from "./adapter.js";
 import { createEmptyMetrics } from "./metrics.js";
 import { Sandbox } from "./docker.js";
+import { evaluateTask, applyEvaluation } from "./evaluator.js";
+import { parseLtfTrace, computeLtfSummary } from "./ltf-collector.js";
+import { resolveTaskDir } from "./loader.js";
 
 export interface RunOptions {
   tasks: TaskDefinition[];
@@ -11,6 +15,8 @@ export interface RunOptions {
   outputDir: string;
   tasksDir: string;
   useDocker?: boolean;
+  onTaskStart?: (task: TaskDefinition, index: number, total: number) => void;
+  onTaskEnd?: (task: TaskDefinition, result: BenchmarkResult) => void;
 }
 
 export async function runBenchmark(
@@ -20,16 +26,20 @@ export async function runBenchmark(
   const useDocker = options.useDocker ?? true;
   const results: BenchmarkResult[] = [];
 
-  for (const task of tasks) {
+  if (!existsSync(outputDir)) {
+    mkdirSync(outputDir, { recursive: true });
+  }
+
+  for (let i = 0; i < tasks.length; i++) {
+    const task = tasks[i]!;
+    options.onTaskStart?.(task, i, tasks.length);
+
     const result = await runSingleTask(
-      task,
-      adapter,
-      modelId,
-      outputDir,
-      tasksDir,
-      useDocker,
+      task, adapter, modelId, outputDir, tasksDir, useDocker,
     );
     results.push(result);
+
+    options.onTaskEnd?.(task, result);
   }
 
   return results;
@@ -43,23 +53,26 @@ async function runSingleTask(
   tasksDir: string,
   useDocker: boolean,
 ): Promise<BenchmarkResult> {
-  const taskDir = resolve(tasksDir, task.category, taskDirName(task.id));
-  const ltfOutputPath = resolve(outputDir, `${task.id}-${adapter.name}.ltf.jsonl`);
+  const taskDir = resolveTaskDir(tasksDir, task);
+  const tracesDir = resolve(outputDir, "traces");
+  if (!existsSync(tracesDir)) mkdirSync(tracesDir, { recursive: true });
+
+  const ltfFileName = `${task.id}-${adapter.name}.ltf.jsonl`;
+  const ltfHostPath = resolve(tracesDir, ltfFileName);
+  const ltfContainerPath = `/output/${ltfFileName}`;
+
   let sandbox: Sandbox | null = null;
 
   try {
     if (useDocker) {
-      sandbox = new Sandbox({
-        task,
-        taskDir,
-        outputDir,
-      });
-
+      sandbox = new Sandbox({ task, taskDir, outputDir: tracesDir });
       await sandbox.create();
       await sandbox.start();
       await sandbox.copyRepoIn();
       await sandbox.setup();
     }
+
+    const startTime = Date.now();
 
     const loopResult = await adapter.run({
       repoPath: useDocker ? "/workspace" : resolve(taskDir, "repo"),
@@ -68,21 +81,57 @@ async function runSingleTask(
       buildCommand: task.repo.build_command,
       modelId,
       constraints: task.constraints,
-      ltfOutputPath,
+      ltfOutputPath: useDocker ? ltfContainerPath : ltfHostPath,
     });
 
-    const metrics = createEmptyMetrics();
-    metrics.resolved = loopResult.claimedSuccess;
-    metrics.iterations = loopResult.iterations;
-    metrics.costUsd = loopResult.costUsd;
-    metrics.durationSeconds = loopResult.durationMs / 1000;
+    const wallClockMs = Date.now() - startTime;
+
+    let metrics: BenchmarkMetrics = {
+      ...createEmptyMetrics(),
+      iterations: loopResult.iterations,
+      costUsd: loopResult.costUsd,
+      durationSeconds: wallClockMs / 1000,
+    };
+
+    const ltfEvents = parseLtfTrace(ltfHostPath);
+    if (ltfEvents.length > 0) {
+      const ltfSummary = computeLtfSummary(ltfEvents, task.constraints.max_iterations);
+      metrics.convergenceRate = ltfSummary.convergenceRate;
+      metrics.verificationAccuracy = ltfSummary.verificationPassRate;
+      metrics.firstEditDelay = ltfSummary.firstEditDelay;
+      metrics.contextEfficiency = ltfSummary.contextEfficiency;
+      metrics.recoveryRate = ltfSummary.recoveryRate;
+      metrics.costUsd = ltfSummary.totalCostUsd || loopResult.costUsd;
+      metrics.iterations = ltfSummary.totalIterations || loopResult.iterations;
+    }
+
+    const evaluation = await evaluateTask(task, sandbox);
+    metrics = applyEvaluation(metrics, evaluation);
+    metrics.falseCompletion = loopResult.claimedSuccess && !evaluation.testsPass;
+
+    const groundTruthFiles = new Set(task.ground_truth.files_changed);
+    const changedFiles = new Set(loopResult.filesChanged);
+    if (groundTruthFiles.size > 0 || changedFiles.size > 0) {
+      const intersection = [...groundTruthFiles].filter((f) => changedFiles.has(f));
+      const union = new Set([...groundTruthFiles, ...changedFiles]);
+      metrics.honestyScore = union.size > 0 ? intersection.length / union.size : 0;
+    }
+
+    if (groundTruthFiles.size > 0 && changedFiles.size > 0) {
+      const intersection = [...groundTruthFiles].filter((f) => changedFiles.has(f));
+      const union = new Set([...groundTruthFiles, ...changedFiles]);
+      metrics.driftScore =
+        union.size > 0
+          ? Math.round((1 - intersection.length / union.size) * 1000) / 1000
+          : 1;
+    }
 
     return {
       taskId: task.id,
       loopDesign: adapter.name,
       model: modelId,
       metrics,
-      ltfTrace: ltfOutputPath,
+      ltfTrace: `traces/${ltfFileName}`,
       timestamp: new Date().toISOString(),
     };
   } finally {
@@ -90,9 +139,4 @@ async function runSingleTask(
       await sandbox.cleanup();
     }
   }
-}
-
-function taskDirName(taskId: string): string {
-  const parts = taskId.split("-");
-  return parts.slice(2).join("-") || taskId;
 }

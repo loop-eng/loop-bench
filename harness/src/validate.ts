@@ -1,7 +1,7 @@
 import AjvModule from "ajv";
 import addFormatsModule from "ajv-formats";
-import { readFileSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const AjvCtor =
@@ -13,7 +13,15 @@ const addFormats =
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function specPath(filename: string): string {
-  return resolve(__dirname, "..", "..", "spec", filename);
+  const candidates = [
+    resolve(__dirname, "..", "..", "spec", filename),
+    resolve(__dirname, "..", "spec", filename),
+    join(process.cwd(), "spec", filename),
+  ];
+  for (const c of candidates) {
+    if (existsSync(c)) return c;
+  }
+  return candidates[0]!;
 }
 
 export interface ValidationError {
