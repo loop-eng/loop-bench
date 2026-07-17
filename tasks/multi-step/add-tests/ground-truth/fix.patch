@@ -1,0 +1,143 @@
+--- a/src/utils/strings.test.ts
++++ b/src/utils/strings.test.ts
+@@ -1,3 +1,153 @@
+ import { slugify, truncate, capitalize, escapeHtml, stripTags, camelToKebab } from './strings';
+
+-describe('strings', () => {});
++describe('strings', () => {
++  describe('slugify', () => {
++    it('should convert a simple string to a slug', () => {
++      expect(slugify('Hello World')).toBe('hello-world');
++    });
++
++    it('should handle special characters', () => {
++      expect(slugify('Hello, World! How are you?')).toBe('hello-world-how-are-you');
++    });
++
++    it('should handle multiple spaces and underscores', () => {
++      expect(slugify('foo   bar_baz')).toBe('foo-bar-baz');
++    });
++
++    it('should return empty string for empty input', () => {
++      expect(slugify('')).toBe('');
++    });
++
++    it('should trim leading and trailing whitespace', () => {
++      expect(slugify('  hello world  ')).toBe('hello-world');
++    });
++  });
++
++  describe('truncate', () => {
++    it('should truncate long text and append ellipsis', () => {
++      expect(truncate('Hello, World!', 10)).toBe('Hello, ...');
++    });
++
++    it('should return text as-is when shorter than maxLen', () => {
++      expect(truncate('Hi', 10)).toBe('Hi');
++    });
++
++    it('should return text as-is when equal to maxLen', () => {
++      expect(truncate('Hello', 5)).toBe('Hello');
++    });
++
++    it('should handle empty string', () => {
++      expect(truncate('', 5)).toBe('');
++    });
++  });
++
++  describe('capitalize', () => {
++    it('should capitalize the first letter', () => {
++      expect(capitalize('hello')).toBe('Hello');
++    });
++
++    it('should handle already capitalized text', () => {
++      expect(capitalize('Hello')).toBe('Hello');
++    });
++
++    it('should return empty string for empty input', () => {
++      expect(capitalize('')).toBe('');
++    });
++
++    it('should capitalize single character', () => {
++      expect(capitalize('a')).toBe('A');
++    });
++
++    it('should not alter the rest of the string', () => {
++      expect(capitalize('hELLO wORLD')).toBe('HELLO wORLD');
++    });
++  });
++
++  describe('escapeHtml', () => {
++    it('should escape ampersands', () => {
++      expect(escapeHtml('foo & bar')).toBe('foo &amp; bar');
++    });
++
++    it('should escape angle brackets', () => {
++      expect(escapeHtml('<div>')).toBe('&lt;div&gt;');
++    });
++
++    it('should escape quotes', () => {
++      expect(escapeHtml('"hello" & \'world\'')).toBe('&quot;hello&quot; &amp; &#39;world&#39;');
++    });
++
++    it('should return empty string for empty input', () => {
++      expect(escapeHtml('')).toBe('');
++    });
++
++    it('should handle text with no special characters', () => {
++      expect(escapeHtml('plain text')).toBe('plain text');
++    });
++  });
++
++  describe('stripTags', () => {
++    it('should strip simple HTML tags', () => {
++      expect(stripTags('<p>Hello</p>')).toBe('Hello');
++    });
++
++    it('should strip nested tags', () => {
++      expect(stripTags('<div><span>Hello</span></div>')).toBe('Hello');
++    });
++
++    it('should strip self-closing tags', () => {
++      expect(stripTags('Hello<br/>World')).toBe('HelloWorld');
++    });
++
++    it('should handle empty string', () => {
++      expect(stripTags('')).toBe('');
++    });
++
++    it('should handle text with no tags', () => {
++      expect(stripTags('plain text')).toBe('plain text');
++    });
++
++    it('should strip tags with attributes', () => {
++      expect(stripTags('<a href="http://example.com">link</a>')).toBe('link');
++    });
++  });
++
++  describe('camelToKebab', () => {
++    it('should convert camelCase to kebab-case', () => {
++      expect(camelToKebab('camelCase')).toBe('camel-case');
++    });
++
++    it('should convert PascalCase to kebab-case', () => {
++      expect(camelToKebab('PascalCase')).toBe('pascal-case');
++    });
++
++    it('should handle multiple uppercase transitions', () => {
++      expect(camelToKebab('myFunctionName')).toBe('my-function-name');
++    });
++
++    it('should handle consecutive uppercase letters', () => {
++      expect(camelToKebab('parseHTMLDoc')).toBe('parse-html-doc');
++    });
++
++    it('should handle already lowercase text', () => {
++      expect(camelToKebab('lowercase')).toBe('lowercase');
++    });
++
++    it('should handle empty string', () => {
++      expect(camelToKebab('')).toBe('');
++    });
++  });
++});

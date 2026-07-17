@@ -49,10 +49,12 @@ describe("loadTasks", () => {
     expect(errors[0]!.message).toContain("not found");
   });
 
-  it("returns empty when filter matches nothing", () => {
+  it("returns empty when no tasks match combined filters", () => {
     const { tasks } = loadTasks({
       tasksDir: TASKS_DIR,
-      category: "multi-step",
+      category: "bug-fix",
+      language: "go",
+      difficulty: "easy",
     });
     expect(tasks).toHaveLength(0);
   });

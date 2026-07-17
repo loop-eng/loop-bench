@@ -1,0 +1,45 @@
+id: "multi-auth-027"
+name: "Add JWT authentication to existing API"
+category: "multi-step"
+difficulty: "hard"
+language: "typescript"
+description: >
+  The project has a working Express API with user and item endpoints but zero
+  authentication. Any client can access all routes without credentials. A User model
+  exists with email and password fields. You need to add JWT-based authentication
+  across multiple files including token generation, middleware, and a login endpoint.
+goal: >
+  Add JWT-based authentication to the API. Create a login endpoint at POST /auth/login
+  that accepts email and password, validates credentials against the user store, and
+  returns a signed JWT. Create auth middleware that extracts and verifies the Bearer
+  token from the Authorization header. Protect all item routes with the middleware.
+  Return 401 for missing or invalid tokens. All existing tests must continue to pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx jest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/auth/middleware.ts"
+    - "src/auth/token.ts"
+    - "src/routes/auth.ts"
+    - "src/server.ts"
+  lines_changed: 100
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "JWT token generation and verification using jsonwebtoken or similar"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Auth middleware protects item routes and rejects unauthorized requests"
+    weight: 0.3
+    check: "test"
+  - criterion: "Login endpoint validates credentials and returns signed JWT token"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass without modification"
+    weight: 0.2
+    check: "test"

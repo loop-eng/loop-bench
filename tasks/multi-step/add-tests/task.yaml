@@ -1,0 +1,42 @@
+id: "multi-tests-030"
+name: "Add comprehensive test suite to utility module"
+category: "multi-step"
+difficulty: "medium"
+language: "typescript"
+description: >
+  The project has a utility module with six string manipulation functions but zero
+  test coverage. The functions handle common operations like slugification, HTML
+  escaping, and case conversion. An empty test file exists with only a describe block.
+  The module needs comprehensive tests to prevent regressions and document behavior.
+goal: >
+  Write a comprehensive test suite for all six exported functions in the strings utility
+  module: slugify, truncate, capitalize, escapeHtml, stripTags, and camelToKebab. Cover
+  normal cases, edge cases including empty strings, unicode characters, and special
+  characters. Achieve at least 18 test cases total. All tests must pass against the
+  existing implementation without modifying the source module.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx jest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/utils/strings.test.ts"
+  lines_changed: 150
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "Tests cover all six exported functions from the strings module"
+    weight: 0.3
+    check: "test"
+  - criterion: "Edge cases tested including empty strings, unicode, and special characters"
+    weight: 0.3
+    check: "test"
+  - criterion: "At least 18 individual test cases in the test file"
+    weight: 0.2
+    check: "test"
+  - criterion: "All tests pass against the existing implementation"
+    weight: 0.2
+    check: "test"

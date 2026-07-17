@@ -1,0 +1,15 @@
+{
+  "name": "extract-shared-bench",
+  "version": "1.0.0",
+  "description": "Benchmark task: extract shared validation logic from handlers",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  }
+}

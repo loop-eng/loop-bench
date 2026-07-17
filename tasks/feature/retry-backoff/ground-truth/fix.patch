@@ -1,0 +1,77 @@
+--- a/src/client.ts
++++ b/src/client.ts
+@@ -10,6 +10,13 @@
+   timeout?: number;
+ }
+
++export interface RetryOptions {
++  maxRetries?: number;
++  baseDelayMs?: number;
++  maxDelayMs?: number;
++}
++
++const DEFAULT_MAX_RETRIES = 3;
++const DEFAULT_BASE_DELAY_MS = 200;
++const DEFAULT_MAX_DELAY_MS = 10000;
++
++function isRetryableStatus(status: number): boolean {
++  return status >= 500;
++}
++
++function calculateDelay(attempt: number, baseDelay: number, maxDelay: number): number {
++  const exponentialDelay = baseDelay * Math.pow(2, attempt);
++  const jitter = Math.random() * exponentialDelay;
++  return Math.min(exponentialDelay + jitter, maxDelay);
++}
++
++function sleep(ms: number): Promise<void> {
++  return new Promise((resolve) => setTimeout(resolve, ms));
++}
++
+ export class ApiClient {
+   private baseUrl: string;
+   private defaultHeaders: Record<string, string>;
++  private retryOptions: Required<RetryOptions>;
+
+-  constructor(baseUrl: string, defaultHeaders: Record<string, string> = {}) {
++  constructor(
++    baseUrl: string,
++    defaultHeaders: Record<string, string> = {},
++    retryOptions: RetryOptions = {}
++  ) {
+     this.baseUrl = baseUrl.replace(/\/+$/, "");
+     this.defaultHeaders = {
+       "Content-Type": "application/json",
+       ...defaultHeaders,
+     };
++    this.retryOptions = {
++      maxRetries: retryOptions.maxRetries ?? DEFAULT_MAX_RETRIES,
++      baseDelayMs: retryOptions.baseDelayMs ?? DEFAULT_BASE_DELAY_MS,
++      maxDelayMs: retryOptions.maxDelayMs ?? DEFAULT_MAX_DELAY_MS,
++    };
+   }
+
+   async request<T = unknown>(
+@@ -50,16 +80,32 @@
+         responseHeaders[key] = value;
+       });
+
+-      if (!response.ok) {
+-        throw new ApiError(
+-          `Request failed with status ${response.status}`,
+-          response.status,
+-          data
+-        );
++      if (!response.ok && isRetryableStatus(response.status) && attempt < maxRetries) {
++        const delay = calculateDelay(attempt, this.retryOptions.baseDelayMs, this.retryOptions.maxDelayMs);
++        await sleep(delay);
++        continue;
+       }
+
++      if (!response.ok) {
++        throw new ApiError(`Request failed with status ${response.status}`, response.status, data);
++      }
++
+       return {
+         status: response.status,
+         data,

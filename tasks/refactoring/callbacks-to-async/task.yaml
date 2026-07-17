@@ -1,0 +1,39 @@
+id: "refac-async-022"
+name: "Convert callbacks to async/await"
+category: "refactoring"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The data fetcher module uses deeply nested callback-style async code
+  with 3-4 levels of nesting, making it hard to read and maintain.
+  Error handling is scattered across multiple callback error parameters.
+goal: |
+  Convert all callback-based async operations to use async/await syntax
+  while preserving the exact same error handling behavior and return values.
+  No callback nesting deeper than 1 level should remain.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/data/fetcher.ts"]
+  lines_changed: 60
+rubric:
+  - criterion: "No callback nesting deeper than 1 level"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Uses async/await syntax"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Error handling preserved"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

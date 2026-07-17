@@ -1,0 +1,95 @@
+--- /dev/null
++++ b/src/routes/tasks.ts
+@@ -0,0 +1,68 @@
++import { Router, Request, Response } from 'express';
++import { taskStore, CreateTaskInput, UpdateTaskInput } from '../models/task';
++
++const router = Router();
++
++const VALID_STATUSES = ['pending', 'in_progress', 'done'];
++
++function validateCreateInput(body: any): { valid: boolean; error?: string } {
++  if (!body.title || typeof body.title !== 'string') {
++    return { valid: false, error: 'title is required and must be a string' };
++  }
++  if (!body.description || typeof body.description !== 'string') {
++    return { valid: false, error: 'description is required and must be a string' };
++  }
++  if (body.priority === undefined || typeof body.priority !== 'number') {
++    return { valid: false, error: 'priority is required and must be a number' };
++  }
++  return { valid: true };
++}
++
++function validateUpdateInput(body: any): { valid: boolean; error?: string } {
++  if (body.title !== undefined && typeof body.title !== 'string') {
++    return { valid: false, error: 'title must be a string' };
++  }
++  if (body.description !== undefined && typeof body.description !== 'string') {
++    return { valid: false, error: 'description must be a string' };
++  }
++  if (body.status !== undefined && !VALID_STATUSES.includes(body.status)) {
++    return { valid: false, error: `status must be one of: ${VALID_STATUSES.join(', ')}` };
++  }
++  if (body.priority !== undefined && typeof body.priority !== 'number') {
++    return { valid: false, error: 'priority must be a number' };
++  }
++  return { valid: true };
++}
++
++router.post('/', (req: Request, res: Response) => {
++  const validation = validateCreateInput(req.body);
++  if (!validation.valid) {
++    return res.status(400).json({ error: validation.error });
++  }
++  const input: CreateTaskInput = {
++    title: req.body.title,
++    description: req.body.description,
++    priority: req.body.priority,
++  };
++  const task = taskStore.create(input);
++  return res.status(201).json(task);
++});
++
++router.get('/:id', (req: Request, res: Response) => {
++  const task = taskStore.findById(req.params.id);
++  if (!task) return res.status(404).json({ error: 'Task not found' });
++  return res.json(task);
++});
++
++router.put('/:id', (req: Request, res: Response) => {
++  const validation = validateUpdateInput(req.body);
++  if (!validation.valid) {
++    return res.status(400).json({ error: validation.error });
++  }
++  const task = taskStore.update(req.params.id, req.body as UpdateTaskInput);
++  if (!task) return res.status(404).json({ error: 'Task not found' });
++  return res.json(task);
++});
++
++router.delete('/:id', (req: Request, res: Response) => {
++  const deleted = taskStore.delete(req.params.id);
++  if (!deleted) return res.status(404).json({ error: 'Task not found' });
++  return res.status(204).send();
++});
++
++export { router as taskRouter };
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -1,4 +1,5 @@
+ import express from 'express';
++import { taskRouter } from './routes/tasks';
+
+ const app = express();
+
+@@ -8,8 +9,7 @@
+   res.json({ status: 'ok' });
+ });
+
+-// TODO: Add task routes here
+-// The tasks resource should be available at /tasks
+-// Implement: POST /tasks, GET /tasks/:id, PUT /tasks/:id, DELETE /tasks/:id
++// Task CRUD routes
++app.use('/tasks', taskRouter);
+
+ export { app };

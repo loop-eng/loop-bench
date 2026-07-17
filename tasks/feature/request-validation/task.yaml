@@ -1,0 +1,40 @@
+id: "feat-validate-015"
+name: "Add request validation middleware"
+category: "feature"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The API endpoints in src/routes.ts accept any JSON body without validation.
+  Invalid data can corrupt the data store or cause runtime errors downstream.
+  There is no systematic way to enforce a schema on incoming requests.
+goal: |
+  Add a reusable validation middleware in src/middleware/validate.ts that checks
+  request bodies against a declarative schema. Apply it to POST and PUT routes.
+  Invalid requests should receive a 400 status with descriptive error messages
+  listing which fields failed validation.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/middleware/validate.ts", "src/routes.ts"]
+  lines_changed: 65
+rubric:
+  - criterion: "Schema-based validation not manual if-else checks"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Returns descriptive error messages for invalid fields"
+    weight: 0.3
+    check: "test"
+  - criterion: "Middleware pattern is reusable across routes"
+    weight: 0.2
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

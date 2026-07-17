@@ -1,0 +1,47 @@
+--- a/src/api.ts
++++ b/src/api.ts
+@@ -6,6 +6,8 @@
+ app.use(express.json());
+
+ app.get("/api/posts", (req: Request, res: Response) => {
+-  const { author } = req.query;
++  const { author, cursor, limit: limitStr } = req.query;
++
++  const limit = limitStr ? Math.max(1, Math.min(100, Number(limitStr))) : undefined;
+
+   let results = getAllPosts();
+@@ -14,9 +16,26 @@
+     results = getPostsByAuthor(author);
+   }
+
+-  res.json({
+-    data: results,
+-    total: results.length,
+-  });
++  if (limit === undefined) {
++    res.json({
++      data: results,
++      total: results.length,
++    });
++    return;
++  }
++
++  let startIndex = 0;
++  if (typeof cursor === "string") {
++    const decodedId = Number(Buffer.from(cursor, "base64url").toString("utf8"));
++    startIndex = results.findIndex((p) => p.id === decodedId);
++    if (startIndex === -1) startIndex = 0;
++  }
++
++  const page = results.slice(startIndex, startIndex + limit);
++  const hasMore = startIndex + limit < results.length;
++  const nextCursor = hasMore
++    ? Buffer.from(String(results[startIndex + limit].id)).toString("base64url")
++    : undefined;
++
++  res.json({
++    data: page,
++    total: results.length,
++    ...(nextCursor ? { next_cursor: nextCursor } : {}),
++  });
+ });

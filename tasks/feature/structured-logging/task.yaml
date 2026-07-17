@@ -1,0 +1,40 @@
+id: "feat-logging-017"
+name: "Replace print with structured JSON logging"
+category: "feature"
+difficulty: "medium"
+language: "python"
+description: |
+  The data processor in src/processor.py uses print() statements for all
+  logging output. This makes it difficult to parse logs in production,
+  integrate with log aggregation tools, or filter by severity level.
+goal: |
+  Replace all print() calls with structured JSON logging using Python's
+  built-in logging module. Each log line must be valid JSON containing at
+  minimum timestamp, level, and message fields. Support configurable log
+  levels. All existing tests must continue to pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+  build_command: "python -m py_compile src/processor.py"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/processor.py"]
+  lines_changed: 35
+rubric:
+  - criterion: "Uses logging module instead of print() for all log output"
+    weight: 0.4
+    check: "grep"
+  - criterion: "Log output is valid JSON with structured fields"
+    weight: 0.3
+    check: "test"
+  - criterion: "Each log entry includes timestamp and level fields"
+    weight: 0.1
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

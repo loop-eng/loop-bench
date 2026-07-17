@@ -1,0 +1,48 @@
+id: "multi-promise-029"
+name: "Migrate callbacks to async/await across codebase"
+category: "multi-step"
+difficulty: "hard"
+language: "typescript"
+description: >
+  The project has five TypeScript files that use callback-style APIs for database
+  access, file system operations, network requests, a data pipeline, and an
+  orchestrator that ties them together. All five files pass their results through
+  callback functions instead of returning Promises. The codebase needs to be
+  modernized to use async/await throughout.
+goal: >
+  Migrate all five source files from callback-style to Promise-based async/await
+  patterns. Every function that accepts a callback parameter must be converted to
+  return a Promise instead. Error handling must use try/catch instead of error-first
+  callbacks. The pipeline must still chain operations correctly. The orchestrator must
+  coordinate async operations. All existing tests must continue to pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx jest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/db.ts"
+    - "src/files.ts"
+    - "src/network.ts"
+    - "src/pipeline.ts"
+    - "src/orchestrator.ts"
+    - "src/db.test.ts"
+  lines_changed: 150
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "No callback patterns remain in any of the five migrated source files"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All exported functions return Promise instead of accepting callbacks"
+    weight: 0.3
+    check: "ast"
+  - criterion: "Error handling is preserved using try/catch and Promise rejection"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass after migration"
+    weight: 0.2
+    check: "test"

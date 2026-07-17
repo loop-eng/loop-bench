@@ -1,0 +1,39 @@
+id: "refac-config-025"
+name: "Consolidate config loading"
+category: "refactoring"
+difficulty: "medium"
+language: "go"
+description: |
+  Configuration is loaded from three separate places (environment variables,
+  YAML file, and CLI flags) with no clear priority order. Each source
+  overwrites the others unpredictably depending on load order.
+goal: |
+  Consolidate into a single config module with clear precedence ordering:
+  CLI flags override environment variables, which override file values,
+  which override defaults. All three sources must merge correctly.
+repo:
+  base_image: "go"
+  setup_command: "go mod tidy"
+  test_command: "go test ./config/..."
+  build_command: "go build ./config/..."
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["config/config.go", "config/env.go", "config/file.go", "config/flags.go"]
+  lines_changed: 120
+rubric:
+  - criterion: "Single Config struct with clear precedence"
+    weight: 0.3
+    check: "grep"
+  - criterion: "CLI overrides env overrides file"
+    weight: 0.3
+    check: "test"
+  - criterion: "Default values for all fields"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

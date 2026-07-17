@@ -1,0 +1,43 @@
+id: "multi-cli-028"
+name: "Build CLI tool for text processing library"
+category: "multi-step"
+difficulty: "hard"
+language: "python"
+description: >
+  The project has a Python library with text processing functions for transforming,
+  analyzing, and converting text, but no command-line interface exists. Users must
+  import the library and write Python code to use it. A CLI tool with subcommands
+  would make the library accessible from the terminal for scripting and pipelines.
+goal: >
+  Build a CLI tool using argparse with three subcommands: process (transforms input
+  file text using the library functions), stats (prints word count, line count, and
+  character count for a file), and convert (changes file encoding from one to another).
+  Each subcommand should accept appropriate arguments. Handle errors gracefully when
+  files are missing or arguments are invalid. Provide --help documentation for all
+  subcommands. All existing tests must continue to pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/cli.py"
+  lines_changed: 60
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "Uses argparse with subcommands for process, stats, and convert"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All three subcommands are functional and produce correct output"
+    weight: 0.3
+    check: "test"
+  - criterion: "Proper error handling for missing files and invalid arguments"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass without modification"
+    weight: 0.2
+    check: "test"

@@ -1,0 +1,39 @@
+id: "feat-argparse-016"
+name: "Add argparse-based CLI flags"
+category: "feature"
+difficulty: "medium"
+language: "python"
+description: |
+  The application in src/app.py currently uses hardcoded file paths for input
+  and output. There is no way to configure the application from the command line.
+  Users must edit the source code to change file paths or enable verbose mode.
+goal: |
+  Add an argparse-based CLI interface with --input, --output, and --verbose flags.
+  The --input and --output flags should accept file paths, and --verbose should
+  enable debug-level output. All existing tests must continue to pass.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest"
+  build_command: "python -m py_compile src/app.py"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/app.py"]
+  lines_changed: 25
+rubric:
+  - criterion: "Uses argparse module for CLI argument parsing"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All flags documented with help text in add_argument calls"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Validates required arguments and shows errors for missing input"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

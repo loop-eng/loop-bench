@@ -1,0 +1,39 @@
+id: "feat-rate-011"
+name: "Add rate limiter middleware"
+category: "feature"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The Express-style server in src/server.ts exposes GET and POST endpoints
+  but has no rate limiting. Any client can send unlimited requests, making
+  the server vulnerable to abuse and denial-of-service attacks.
+goal: |
+  Add a rate limiter middleware in src/middleware/rate-limiter.ts that limits
+  requests per IP address to a configurable number per time window. Apply it
+  to all routes. Requests exceeding the limit should receive a 429 status.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/middleware/rate-limiter.ts", "src/server.ts"]
+  lines_changed: 45
+rubric:
+  - criterion: "Rate limiter uses sliding window or token bucket algorithm"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Per-IP tracking not global rate limiting"
+    weight: 0.3
+    check: "test"
+  - criterion: "No hardcoded limits — configurable via options"
+    weight: 0.2
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

@@ -1,0 +1,331 @@
+--- a/src/config_parser.py
++++ b/src/config_parser.py
+@@ -1,4 +1,4 @@
+-import re
++from enum import Enum, auto
+ from typing import Any
+ 
+ 
+@@ -7,86 +7,259 @@
+     pass
+ 
+ 
+-def parse_config(text: str) -> dict[str, Any]:
+-    """Parse a custom config format into a dictionary.
++class TokenType(Enum):
++    """Token types produced by the lexer."""
++    IDENTIFIER = auto()
++    STRING = auto()
++    INTEGER = auto()
++    FLOAT = auto()
++    BOOLEAN = auto()
++    LBRACE = auto()
++    RBRACE = auto()
++    LBRACKET = auto()
++    RBRACKET = auto()
++    EQUALS = auto()
++    COMMA = auto()
++    EOF = auto()
+ 
+-    Uses regex patterns to extract configuration blocks and key-value pairs.
+-    """
+-    result: dict[str, Any] = {}
+ 
+-    # Remove comments
+-    text = re.sub(r'#[^\n]*', '', text)
++class Token:
++    """A single token with its type, value, and source line number."""
++    __slots__ = ("type", "value", "line")
+ 
+-    # Match top-level blocks: name { ... }
+-    block_pattern = re.compile(
+-        r'(\w+)\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}',
+-        re.DOTALL
+-    )
++    def __init__(self, type: TokenType, value: Any, line: int) -> None:
++        self.type = type
++        self.value = value
++        self.line = line
+ 
+-    for match in block_pattern.finditer(text):
+-        block_name = match.group(1)
+-        block_content = match.group(2)
+-        result[block_name] = _parse_block(block_content)
++    def __repr__(self) -> str:
++        return f"Token({self.type}, {self.value!r}, line={self.line})"
+ 
+-    return result
+ 
++class Lexer:
++    """Tokenizes configuration text character by character, tracking lines."""
+ 
+-def _parse_block(content: str) -> dict[str, Any]:
+-    """Parse the content of a configuration block."""
+-    result: dict[str, Any] = {}
++    def __init__(self, text: str) -> None:
++        self.text = text
++        self.pos = 0
++        self.line = 1
+ 
+-    # Check for nested blocks first
+-    nested_pattern = re.compile(
+-        r'(\w+)\s*\{([^{}]*)\}',
+-        re.DOTALL
+-    )
++    def _advance(self) -> str:
++        ch = self.text[self.pos]
++        if ch == '\n':
++            self.line += 1
++        self.pos += 1
++        return ch
+ 
+-    # Extract nested blocks
+-    nested_positions: list[tuple[int, int]] = []
+-    for match in nested_pattern.finditer(content):
+-        nested_name = match.group(1)
+-        nested_content = match.group(2)
+-        result[nested_name] = _parse_block(nested_content)
+-        nested_positions.append((match.start(), match.end()))
++    def _peek(self) -> str | None:
++        if self.pos >= len(self.text):
++            return None
++        return self.text[self.pos]
+ 
+-    # Remove nested blocks from content to parse remaining key-value pairs
+-    remaining = content
+-    for start, end in reversed(nested_positions):
+-        remaining = remaining[:start] + remaining[end:]
++    def _skip_whitespace_and_comments(self) -> None:
++        while self.pos < len(self.text):
++            ch = self.text[self.pos]
++            if ch in (' ', '\t', '\n', '\r'):
++                self._advance()
++            elif ch == '#':
++                # Skip to end of line
++                while self.pos < len(self.text) and self.text[self.pos] != '\n':
++                    self.pos += 1
++            else:
++                break
+ 
+-    # Parse key-value pairs
+-    # Match: key = "string_value"
+-    string_pattern = re.compile(r'(\w+)\s*=\s*"([^"]*)"')
+-    for match in string_pattern.finditer(remaining):
+-        result[match.group(1)] = match.group(2)
++    def _read_string(self) -> str:
++        start_line = self.line
++        self._advance()  # skip opening quote
++        result: list[str] = []
++        while self.pos < len(self.text):
++            ch = self._advance()
++            if ch == '"':
++                return ''.join(result)
++            if ch == '\\' and self.pos < len(self.text):
++                next_ch = self._advance()
++                escape_map = {'n': '\n', 't': '\t', '"': '"', '\\': '\\'}
++                result.append(escape_map.get(next_ch, '\\' + next_ch))
++            else:
++                result.append(ch)
++        raise ParseError(f"Unterminated string at line {start_line}")
+ 
+-    # Match: key = number
+-    number_pattern = re.compile(r'(\w+)\s*=\s*(\d+(?:\.\d+)?)')
+-    for match in number_pattern.finditer(remaining):
+-        key = match.group(1)
+-        if key not in result:  # Don't override string matches
+-            value = match.group(2)
+-            result[key] = float(value) if '.' in value else int(value)
++    def _read_identifier_or_keyword(self) -> Token:
++        start = self.pos
++        line = self.line
++        while self.pos < len(self.text) and (
++            self.text[self.pos].isalnum() or self.text[self.pos] == '_'
++        ):
++            self._advance()
++        word = self.text[start:self.pos]
++        if word == 'true':
++            return Token(TokenType.BOOLEAN, True, line)
++        if word == 'false':
++            return Token(TokenType.BOOLEAN, False, line)
++        return Token(TokenType.IDENTIFIER, word, line)
+ 
+-    # Match: key = true/false
+-    bool_pattern = re.compile(r'(\w+)\s*=\s*(true|false)')
+-    for match in bool_pattern.finditer(remaining):
+-        key = match.group(1)
+-        if key not in result:
+-            result[key] = match.group(2) == 'true'
++    def _read_number(self) -> Token:
++        start = self.pos
++        line = self.line
++        is_float = False
++        while self.pos < len(self.text) and (
++            self.text[self.pos].isdigit() or self.text[self.pos] == '.'
++        ):
++            if self.text[self.pos] == '.':
++                if is_float:
++                    break
++                is_float = True
++            self._advance()
++        text = self.text[start:self.pos]
++        if is_float:
++            return Token(TokenType.FLOAT, float(text), line)
++        return Token(TokenType.INTEGER, int(text), line)
+ 
+-    # Match: key = [array]
+-    array_pattern = re.compile(r'(\w+)\s*=\s*\[([^\]]*)\]')
+-    for match in array_pattern.finditer(remaining):
+-        key = match.group(1)
+-        if key not in result:
+-            items_str = match.group(2)
+-            items = re.findall(r'"([^"]*)"', items_str)
+-            result[key] = items
++    def tokenize(self) -> list[Token]:
++        """Scan the entire input and return a list of tokens."""
++        tokens: list[Token] = []
++        while True:
++            self._skip_whitespace_and_comments()
++            if self.pos >= len(self.text):
++                tokens.append(Token(TokenType.EOF, None, self.line))
++                break
++            ch = self.text[self.pos]
++            line = self.line
++            if ch == '{':
++                self._advance()
++                tokens.append(Token(TokenType.LBRACE, '{', line))
++            elif ch == '}':
++                self._advance()
++                tokens.append(Token(TokenType.RBRACE, '}', line))
++            elif ch == '[':
++                self._advance()
++                tokens.append(Token(TokenType.LBRACKET, '[', line))
++            elif ch == ']':
++                self._advance()
++                tokens.append(Token(TokenType.RBRACKET, ']', line))
++            elif ch == '=':
++                self._advance()
++                tokens.append(Token(TokenType.EQUALS, '=', line))
++            elif ch == ',':
++                self._advance()
++                tokens.append(Token(TokenType.COMMA, ',', line))
++            elif ch == '"':
++                value = self._read_string()
++                tokens.append(Token(TokenType.STRING, value, line))
++            elif ch.isalpha() or ch == '_':
++                tokens.append(self._read_identifier_or_keyword())
++            elif ch.isdigit():
++                tokens.append(self._read_number())
++            else:
++                raise ParseError(
++                    f"Unexpected character {ch!r} at line {line}"
++                )
++        return tokens
+ 
+-    return result
+ 
++class Parser:
++    """Recursive descent parser for the configuration format."""
+ 
++    def __init__(self, tokens: list[Token]) -> None:
++        self.tokens = tokens
++        self.pos = 0
++
++    def _current(self) -> Token:
++        return self.tokens[self.pos]
++
++    def _expect(self, token_type: TokenType) -> Token:
++        token = self._current()
++        if token.type != token_type:
++            raise ParseError(
++                f"Expected {token_type.name} but got {token.type.name} "
++                f"at line {token.line}"
++            )
++        self.pos += 1
++        return token
++
++    def _match(self, token_type: TokenType) -> Token | None:
++        if self._current().type == token_type:
++            token = self._current()
++            self.pos += 1
++            return token
++        return None
++
++    def parse(self) -> dict[str, Any]:
++        """Parse the token stream into a configuration dictionary."""
++        result: dict[str, Any] = {}
++        while self._current().type != TokenType.EOF:
++            name_token = self._expect(TokenType.IDENTIFIER)
++            self._expect(TokenType.LBRACE)
++            result[name_token.value] = self._parse_block()
++            self._expect(TokenType.RBRACE)
++        return result
++
++    def _parse_block(self) -> dict[str, Any]:
++        """Parse the contents of a { ... } block."""
++        result: dict[str, Any] = {}
++        while self._current().type not in (TokenType.RBRACE, TokenType.EOF):
++            key_token = self._expect(TokenType.IDENTIFIER)
++            if self._current().type == TokenType.LBRACE:
++                # Nested block
++                self._expect(TokenType.LBRACE)
++                result[key_token.value] = self._parse_block()
++                self._expect(TokenType.RBRACE)
++            elif self._current().type == TokenType.EQUALS:
++                self._expect(TokenType.EQUALS)
++                result[key_token.value] = self._parse_value()
++            else:
++                raise ParseError(
++                    f"Expected '=' or '{{' after key {key_token.value!r} "
++                    f"at line {key_token.line}"
++                )
++        return result
++
++    def _parse_value(self) -> Any:
++        """Parse a single value (string, number, boolean, or array)."""
++        token = self._current()
++        if token.type == TokenType.STRING:
++            self.pos += 1
++            return token.value
++        if token.type == TokenType.INTEGER:
++            self.pos += 1
++            return token.value
++        if token.type == TokenType.FLOAT:
++            self.pos += 1
++            return token.value
++        if token.type == TokenType.BOOLEAN:
++            self.pos += 1
++            return token.value
++        if token.type == TokenType.LBRACKET:
++            return self._parse_array()
++        raise ParseError(
++            f"Unexpected token {token.type.name} at line {token.line}"
++        )
++
++    def _parse_array(self) -> list[Any]:
++        """Parse an array value: [ item, item, ... ]."""
++        self._expect(TokenType.LBRACKET)
++        items: list[Any] = []
++        if self._current().type == TokenType.RBRACKET:
++            self._expect(TokenType.RBRACKET)
++            return items
++        items.append(self._parse_value())
++        while self._match(TokenType.COMMA):
++            items.append(self._parse_value())
++        self._expect(TokenType.RBRACKET)
++        return items
++
++
++def parse_config(text: str) -> dict[str, Any]:
++    """Parse a custom config format into a dictionary.
++
++    Uses a recursive descent parser with proper error reporting.
++    """
++    lexer = Lexer(text)
++    tokens = lexer.tokenize()
++    parser = Parser(tokens)
++    return parser.parse()
++
++
+ def parse_file(filepath: str) -> dict[str, Any]:
+     """Parse a config file from disk."""
+     with open(filepath, 'r') as f:

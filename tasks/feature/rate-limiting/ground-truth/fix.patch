@@ -1,0 +1,61 @@
+--- /dev/null
++++ b/src/middleware/rate-limiter.ts
+@@ -0,0 +1,40 @@
++import { Request, Response, NextFunction } from "express";
++
++interface RateLimiterOptions {
++  windowMs: number;
++  maxRequests: number;
++}
++
++interface RequestRecord {
++  timestamps: number[];
++}
++
++export function createRateLimiter(options: RateLimiterOptions) {
++  const { windowMs, maxRequests } = options;
++  const clients = new Map<string, RequestRecord>();
++
++  // Cleanup old entries periodically
++  setInterval(() => {
++    const now = Date.now();
++    for (const [key, record] of clients.entries()) {
++      record.timestamps = record.timestamps.filter((t) => now - t < windowMs);
++      if (record.timestamps.length === 0) {
++        clients.delete(key);
++      }
++    }
++  }, windowMs).unref();
++
++  return (req: Request, res: Response, next: NextFunction): void => {
++    const ip = req.ip || req.socket.remoteAddress || "unknown";
++    const now = Date.now();
++
++    if (!clients.has(ip)) {
++      clients.set(ip, { timestamps: [] });
++    }
++    const record = clients.get(ip)!;
++    record.timestamps = record.timestamps.filter((t) => now - t < windowMs);
++    record.timestamps.push(now);
++
++    if (record.timestamps.length > maxRequests) {
++      res.status(429).json({ error: "Too many requests, please try again later" });
++      return;
++    }
++    next();
++  };
++}
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -1,6 +1,11 @@
+ import express, { Request, Response } from "express";
++import { createRateLimiter } from "./middleware/rate-limiter.js";
+
+ const app = express();
+ app.use(express.json());
++app.use(createRateLimiter({
++  windowMs: 60 * 1000,
++  maxRequests: 100,
++}));
+
+ interface Item {

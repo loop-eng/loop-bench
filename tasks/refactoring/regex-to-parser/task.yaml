@@ -1,0 +1,40 @@
+id: "refac-parser-024"
+name: "Replace regex with recursive descent parser"
+category: "refactoring"
+difficulty: "hard"
+language: "python"
+description: |
+  The config parser module uses fragile regex patterns to parse a custom
+  configuration format. The regex approach breaks on nested blocks, cannot
+  provide meaningful error messages, and is extremely difficult to extend.
+goal: |
+  Replace the regex-based parsing with a proper recursive descent parser
+  that handles nested configuration blocks, provides error messages with
+  line numbers, and correctly handles all edge cases including empty files,
+  comments, and unicode values.
+repo:
+  base_image: "python"
+  setup_command: "pip install -e ."
+  test_command: "python -m pytest src/test_parser.py -v"
+  build_command: "python -c 'import src.config_parser'"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/config_parser.py"]
+  lines_changed: 150
+rubric:
+  - criterion: "No regex in parser module"
+    weight: 0.4
+    check: "grep"
+  - criterion: "Proper error messages with line numbers"
+    weight: 0.3
+    check: "test"
+  - criterion: "Handles nested blocks correctly"
+    weight: 0.1
+    check: "test"
+  - criterion: "All existing tests pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 20

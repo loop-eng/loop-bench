@@ -1,0 +1,73 @@
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -69,6 +69,7 @@
+ export async function handleRequest(
+   req: http.IncomingMessage,
+   res: http.ServerResponse
+ ): Promise<void> {
+   const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+   const urlPath = url.pathname;
+   const method = req.method ?? "GET";
+
++  // POST /upload - multipart file upload with streaming
++  if (method === "POST" && urlPath === "/upload") {
++    const contentType = req.headers["content-type"] ?? "";
++    if (!contentType.startsWith("multipart/form-data")) {
++      sendJson(res, 400, {
++        success: false,
++        error: "Content-Type must be multipart/form-data",
++      });
++      return;
++    }
++
++    const boundaryMatch = contentType.match(/boundary=(.+)/);
++    if (!boundaryMatch) {
++      sendJson(res, 400, { success: false, error: "Missing boundary" });
++      return;
++    }
++
++    ensureUploadDir();
++    const filename = `upload_${Date.now()}_${Math.random().toString(36).slice(2)}`;
++    const filepath = path.join(UPLOAD_DIR, filename);
++    const writeStream = fs.createWriteStream(filepath);
++
++    let receivedBytes = 0;
++    let aborted = false;
++
++    req.on("data", (chunk: Buffer) => {
++      receivedBytes += chunk.length;
++      if (receivedBytes > maxFileSizeBytes) {
++        aborted = true;
++        req.destroy();
++        writeStream.destroy();
++        try { fs.unlinkSync(filepath); } catch {}
++        sendJson(res, 413, {
++          success: false,
++          error: `File exceeds maximum size of ${maxFileSizeBytes} bytes`,
++        });
++        return;
++      }
++      writeStream.write(chunk);
++    });
++
++    req.on("end", () => {
++      if (aborted) return;
++      writeStream.end();
++      sendJson(res, 200, {
++        success: true,
++        data: { filename, size: receivedBytes, path: filepath },
++      });
++    });
++
++    req.on("error", (err) => {
++      if (aborted) return;
++      writeStream.destroy();
++      try { fs.unlinkSync(filepath); } catch {}
++      sendJson(res, 500, { success: false, error: "Upload failed" });
++    });
++
++    return;
++  }
++
+   // GET /api/data
+   if (method === "GET" && urlPath === "/api/data") {

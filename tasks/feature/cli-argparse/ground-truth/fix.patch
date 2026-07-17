@@ -1,0 +1,40 @@
+--- a/src/app.py
++++ b/src/app.py
+@@ -1,6 +1,7 @@
+ """File processor application with hardcoded configuration."""
+
++import argparse
+ import os
+ import sys
+
+@@ -53,8 +54,24 @@
+         print("Done.")
+
+
++def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
++    """Parse command-line arguments."""
++    parser = argparse.ArgumentParser(
++        description="Process text files by normalizing and uppercasing content."
++    )
++    parser.add_argument(
++        "--input", required=True, help="Path to the input file to process"
++    )
++    parser.add_argument(
++        "--output", required=True, help="Path to write the processed output"
++    )
++    parser.add_argument(
++        "--verbose", action="store_true", default=False,
++        help="Enable verbose debug output"
++    )
++    return parser.parse_args(argv)
++
++
+ def main() -> None:
+-    """Main entry point using hardcoded paths."""
+-    run(INPUT_FILE, OUTPUT_FILE, VERBOSE)
++    """Main entry point using CLI arguments."""
++    args = parse_args()
++    run(args.input, args.output, args.verbose)
+
+
+ if __name__ == "__main__":

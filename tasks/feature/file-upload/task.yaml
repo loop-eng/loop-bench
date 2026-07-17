@@ -1,0 +1,40 @@
+id: "feat-upload-020"
+name: "Multipart file upload with streaming"
+category: "feature"
+difficulty: "hard"
+language: "typescript"
+description: |
+  The HTTP server in src/server.ts only accepts JSON request bodies. There
+  is no support for file uploads. Large files would need to be base64-encoded
+  in JSON, which is memory-intensive and impractical for production use.
+goal: |
+  Add a multipart file upload endpoint that streams uploaded files to disk
+  without buffering the entire file in memory. Enforce a configurable file
+  size limit and reject requests with invalid content types. All existing
+  tests must continue to pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/server.ts"]
+  lines_changed: 60
+rubric:
+  - criterion: "Uses streaming or piping instead of buffering entire file"
+    weight: 0.3
+    check: "grep"
+  - criterion: "File size limit is enforced and rejects oversized uploads"
+    weight: 0.3
+    check: "test"
+  - criterion: "Validates content-type and rejects non-multipart requests"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 25
+  max_cost_usd: 8.00
+  timeout_minutes: 15

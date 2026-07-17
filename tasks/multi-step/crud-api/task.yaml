@@ -1,0 +1,42 @@
+id: "multi-crud-026"
+name: "Build CRUD API from specification"
+category: "multi-step"
+difficulty: "hard"
+language: "typescript"
+description: >
+  The project has an Express HTTP server setup and a Task data model with an in-memory
+  store, but no API endpoints are implemented. The router in server.ts is empty. You need
+  to implement complete CRUD operations for the tasks resource with proper HTTP status
+  codes, input validation, and error handling across multiple files.
+goal: >
+  Implement all four CRUD endpoints for the tasks resource: POST /tasks (create, 201),
+  GET /tasks/:id (read, 200/404), PUT /tasks/:id (update, 200/404), DELETE /tasks/:id
+  (delete, 204/404). Add input validation that rejects missing or invalid fields with 400
+  status. Wire the routes into the existing Express server. All existing tests must pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx jest"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed:
+    - "src/routes/tasks.ts"
+    - "src/server.ts"
+  lines_changed: 80
+constraints:
+  max_iterations: 30
+  max_cost_usd: 10.00
+  timeout_minutes: 20
+rubric:
+  - criterion: "All 4 CRUD endpoints implemented and return correct responses"
+    weight: 0.3
+    check: "test"
+  - criterion: "Proper HTTP status codes for success and error cases"
+    weight: 0.3
+    check: "test"
+  - criterion: "Input validation rejects invalid or missing fields on create and update"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"

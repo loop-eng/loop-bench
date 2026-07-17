@@ -1,0 +1,100 @@
+--- /dev/null
++++ b/src/cli.py
+@@ -0,0 +1,72 @@
++"""Command-line interface for the text processing library."""
++
++import argparse
++import sys
++
++from src.processor import (
++    TRANSFORMS,
++    word_count,
++    line_count,
++    char_count,
++    read_file,
++    write_file,
++    convert_encoding,
++)
++
++
++def cmd_process(args: argparse.Namespace) -> None:
++    """Process a text file with the given transform."""
++    try:
++        text = read_file(args.input)
++    except FileNotFoundError:
++        print(f"Error: file not found: {args.input}", file=sys.stderr)
++        sys.exit(1)
++
++    transform = TRANSFORMS.get(args.transform)
++    if transform is None:
++        print(f"Error: unknown transform '{args.transform}'. "
++              f"Available: {', '.join(TRANSFORMS)}", file=sys.stderr)
++        sys.exit(1)
++
++    result = transform(text)
++    if args.output:
++        write_file(args.output, result)
++    else:
++        print(result)
++
++
++def cmd_stats(args: argparse.Namespace) -> None:
++    """Print statistics for a text file."""
++    try:
++        text = read_file(args.input)
++    except FileNotFoundError:
++        print(f"Error: file not found: {args.input}", file=sys.stderr)
++        sys.exit(1)
++
++    print(f"Words: {word_count(text)}")
++    print(f"Lines: {line_count(text)}")
++    print(f"Characters: {char_count(text)}")
++
++
++def cmd_convert(args: argparse.Namespace) -> None:
++    """Convert a file between encodings."""
++    try:
++        convert_encoding(args.input, args.output,
++                         args.from_encoding, args.to_encoding)
++    except FileNotFoundError:
++        print(f"Error: file not found: {args.input}", file=sys.stderr)
++        sys.exit(1)
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(
++        prog="textproc",
++        description="Text processing CLI tool",
++    )
++    subparsers = parser.add_subparsers(dest="command", required=True)
++
++    # process subcommand
++    p_process = subparsers.add_parser("process", help="Transform a text file")
++    p_process.add_argument("input", help="Input file path")
++    p_process.add_argument("--transform", "-t", required=True,
++                           choices=list(TRANSFORMS.keys()),
++                           help="Transform to apply")
++    p_process.add_argument("--output", "-o", help="Output file (default: stdout)")
++    p_process.set_defaults(func=cmd_process)
++
++    # stats subcommand
++    p_stats = subparsers.add_parser("stats", help="Show text statistics")
++    p_stats.add_argument("input", help="Input file path")
++    p_stats.set_defaults(func=cmd_stats)
++
++    # convert subcommand
++    p_convert = subparsers.add_parser("convert", help="Convert file encoding")
++    p_convert.add_argument("input", help="Input file path")
++    p_convert.add_argument("output", help="Output file path")
++    p_convert.add_argument("--from-encoding", default="utf-8",
++                           help="Source encoding (default: utf-8)")
++    p_convert.add_argument("--to-encoding", default="latin-1",
++                           help="Target encoding (default: latin-1)")
++    p_convert.set_defaults(func=cmd_convert)
++
++    args = parser.parse_args()
++    args.func(args)
++
++
++if __name__ == "__main__":
++    main()

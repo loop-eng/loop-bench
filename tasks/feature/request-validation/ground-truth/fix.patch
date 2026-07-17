@@ -1,0 +1,93 @@
+--- /dev/null
++++ b/src/middleware/validate.ts
+@@ -0,0 +1,55 @@
++import { Request, Response, NextFunction } from "express";
++
++type FieldType = "string" | "number" | "boolean";
++
++interface FieldRule {
++  type: FieldType;
++  required?: boolean;
++  enum?: readonly string[];
++}
++
++export interface Schema {
++  [field: string]: FieldRule;
++}
++
++interface ValidationError {
++  field: string;
++  message: string;
++}
++
++export function validate(schema: Schema, partial = false) {
++  return (req: Request, res: Response, next: NextFunction): void => {
++    const errors: ValidationError[] = [];
++    const body = req.body || {};
++
++    for (const [field, rule] of Object.entries(schema)) {
++      const value = body[field];
++
++      if (value === undefined || value === null) {
++        if (rule.required && !partial) {
++          errors.push({ field, message: `${field} is required` });
++        }
++        continue;
++      }
++
++      if (typeof value !== rule.type) {
++        errors.push({
++          field,
++          message: `${field} must be of type ${rule.type}, got ${typeof value}`,
++        });
++        continue;
++      }
++
++      if (rule.enum && !rule.enum.includes(value as string)) {
++        errors.push({
++          field,
++          message: `${field} must be one of: ${rule.enum.join(", ")}`,
++        });
++      }
++    }
++
++    if (errors.length > 0) {
++      res.status(400).json({ errors });
++      return;
++    }
++
++    next();
++  };
++}
+--- a/src/routes.ts
++++ b/src/routes.ts
+@@ -1,5 +1,17 @@
+ import express, { Request, Response } from "express";
++import { validate, Schema } from "./middleware/validate.js";
+
++const userSchema: Schema = {
++  name: { type: "string", required: true },
++  email: { type: "string", required: true },
++  age: { type: "number", required: true },
++  role: { type: "string", enum: ["admin", "user", "moderator"] },
++};
++
+ const app = express();
+ app.use(express.json());
+
+@@ -36,7 +48,7 @@
+   res.json(user);
+ });
+
+-app.post("/api/users", (req: Request, res: Response) => {
++app.post("/api/users", validate(userSchema), (req: Request, res: Response) => {
+   const { name, email, age, role } = req.body;
+   const newUser: User = {
+     id: nextId++,
+@@ -48,7 +60,7 @@
+   res.status(201).json(newUser);
+ });
+
+-app.put("/api/users/:id", (req: Request, res: Response) => {
++app.put("/api/users/:id", validate(userSchema, true), (req: Request, res: Response) => {
+   const idx = users.findIndex((u) => u.id === Number(req.params.id));

@@ -1,0 +1,40 @@
+id: "feat-retry-012"
+name: "Add retry with exponential backoff"
+category: "feature"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The HTTP client in src/client.ts makes API calls to external services
+  but has no retry logic. When a request fails with a transient error
+  (5xx status), the caller gets an immediate failure with no recovery.
+goal: |
+  Add retry logic with exponential backoff and jitter to the HTTP client.
+  Failed requests with 5xx status codes should be retried up to a configurable
+  maximum. Delay between retries should grow exponentially with random jitter.
+  Client errors (4xx) should not be retried.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/client.ts"]
+  lines_changed: 50
+rubric:
+  - criterion: "Uses exponential backoff formula (base * 2^attempt or similar)"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Includes jitter (randomness) in delay calculation"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Configurable max retries with sensible default"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

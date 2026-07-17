@@ -1,0 +1,17 @@
+{
+  "name": "callback-migration",
+  "version": "1.0.0",
+  "description": "Callback to Promise migration project",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "test": "jest --forceExit --detectOpenHandles"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.12",
+    "@types/node": "^20.11.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3"
+  }
+}

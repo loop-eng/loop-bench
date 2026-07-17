@@ -1,0 +1,158 @@
+--- a/cache/cache.go
++++ b/cache/cache.go
+@@ -1,38 +1,100 @@
+ package cache
+
+-import "time"
++import (
++	"container/list"
++	"sync"
++	"time"
++)
++
++type entry struct {
++	key       string
++	value     interface{}
++	expiresAt time.Time
++}
+
+-// Cache is an in-memory key-value cache.
+-// TODO: Implement TTL-based expiration, max size eviction, and thread safety.
+ type Cache struct {
+-	// TODO: add fields
++	mu      sync.Mutex
++	ttl     time.Duration
++	maxSize int
++	items   map[string]*list.Element
++	order   *list.List // front = most recently used
+ }
+
+-// New creates a new Cache with the given TTL and max number of entries.
+ func New(ttl time.Duration, maxSize int) *Cache {
+-	return &Cache{}
++	return &Cache{
++		ttl:     ttl,
++		maxSize: maxSize,
++		items:   make(map[string]*list.Element),
++		order:   list.New(),
++	}
+ }
+
+-// Get retrieves a value from the cache.
+-// Returns the value and true if found and not expired, otherwise nil and false.
+ func (c *Cache) Get(key string) (interface{}, bool) {
+-	// TODO: implement
+-	return nil, false
++	c.mu.Lock()
++	defer c.mu.Unlock()
++
++	elem, ok := c.items[key]
++	if !ok {
++		return nil, false
++	}
++
++	e := elem.Value.(*entry)
++	if time.Now().After(e.expiresAt) {
++		c.order.Remove(elem)
++		delete(c.items, key)
++		return nil, false
++	}
++
++	c.order.MoveToFront(elem)
++	return e.value, true
+ }
+
+-// Set stores a value in the cache with the configured TTL.
+-// If the cache is full, the least-recently-used entry should be evicted.
+ func (c *Cache) Set(key string, value interface{}) {
+-	// TODO: implement
++	c.mu.Lock()
++	defer c.mu.Unlock()
++
++	if elem, ok := c.items[key]; ok {
++		c.order.MoveToFront(elem)
++		e := elem.Value.(*entry)
++		e.value = value
++		e.expiresAt = time.Now().Add(c.ttl)
++		return
++	}
++
++	if c.order.Len() >= c.maxSize {
++		oldest := c.order.Back()
++		if oldest != nil {
++			e := oldest.Value.(*entry)
++			delete(c.items, e.key)
++			c.order.Remove(oldest)
++		}
++	}
++
++	e := &entry{
++		key:       key,
++		value:     value,
++		expiresAt: time.Now().Add(c.ttl),
++	}
++	elem := c.order.PushFront(e)
++	c.items[key] = elem
+ }
+
+-// Delete removes an entry from the cache.
+ func (c *Cache) Delete(key string) {
+-	// TODO: implement
++	c.mu.Lock()
++	defer c.mu.Unlock()
++
++	if elem, ok := c.items[key]; ok {
++		c.order.Remove(elem)
++		delete(c.items, key)
++	}
+ }
+
+-// Len returns the number of entries currently in the cache.
+ func (c *Cache) Len() int {
+-	// TODO: implement
+-	return 0
++	c.mu.Lock()
++	defer c.mu.Unlock()
++	return c.order.Len()
+ }
+--- a/service/service.go
++++ b/service/service.go
+@@ -3,19 +3,32 @@
+ import (
+ 	"fmt"
++	"time"
++
++	"github.com/example/cache-service/cache"
+ )
+
+ type Backend interface {
+ 	Fetch(key string) (string, error)
+ }
+
+ type Service struct {
+ 	backend Backend
++	cache   *cache.Cache
+ }
+
+-func NewService(backend Backend) *Service {
++func NewService(backend Backend, opts ...Option) *Service {
++	c := cache.New(5*time.Minute, 1000)
+ 	return &Service{
+ 		backend: backend,
++		cache:   c,
+ 	}
+ }
+
+ func (s *Service) GetData(key string) (string, error) {
++	if val, ok := s.cache.Get(key); ok {
++		return val.(string), nil
++	}
++
+ 	value, err := s.backend.Fetch(key)
+ 	if err != nil {
+ 		return "", fmt.Errorf("backend fetch failed for %q: %w", key, err)
+ 	}
++
++	s.cache.Set(key, value)
+ 	return value, nil
+ }

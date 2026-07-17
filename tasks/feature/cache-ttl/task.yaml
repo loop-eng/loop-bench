@@ -1,0 +1,41 @@
+id: "feat-cache-018"
+name: "In-memory cache with TTL and LRU eviction"
+category: "feature"
+difficulty: "medium"
+language: "go"
+description: |
+  The service in service/service.go calls an external API backend on every
+  request. There is a cache stub in cache/cache.go but it is not implemented.
+  Every call results in a full round-trip to the backend, causing latency
+  and unnecessary load.
+goal: |
+  Implement the in-memory cache in cache/cache.go with configurable TTL
+  and maximum size. Expired entries must be evicted on access. When the
+  cache is full, the least-recently-used entry must be evicted. The cache
+  must be safe for concurrent use. All existing tests must pass.
+repo:
+  base_image: "go"
+  setup_command: "go mod download"
+  test_command: "go test ./..."
+  build_command: "go build ./..."
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["cache/cache.go", "service/service.go"]
+  lines_changed: 80
+rubric:
+  - criterion: "TTL-based expiration evicts stale entries on access"
+    weight: 0.3
+    check: "test"
+  - criterion: "Thread-safe implementation using sync.Mutex or sync.RWMutex"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Max size eviction using LRU or similar policy"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

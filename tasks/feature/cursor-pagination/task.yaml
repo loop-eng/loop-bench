@@ -1,0 +1,39 @@
+id: "feat-cursor-013"
+name: "Add cursor-based pagination"
+category: "feature"
+difficulty: "medium"
+language: "typescript"
+description: |
+  The list endpoint in src/api.ts returns the entire dataset in one response.
+  As the dataset grows this becomes slow and wastes bandwidth. The API needs
+  pagination, and cursor-based pagination is preferred over offset-based.
+goal: |
+  Add cursor-based pagination to the GET /api/posts endpoint. Accept optional
+  query parameters cursor and limit. Return a next_cursor field when more
+  results are available. The cursor should encode the position opaquely.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/api.ts"]
+  lines_changed: 35
+rubric:
+  - criterion: "Uses cursor-based pagination not offset-based"
+    weight: 0.3
+    check: "grep"
+  - criterion: "Returns next_cursor in response when more results exist"
+    weight: 0.3
+    check: "test"
+  - criterion: "Handles end of list correctly with no next_cursor"
+    weight: 0.2
+    check: "test"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

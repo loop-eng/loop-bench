@@ -1,0 +1,14 @@
+{
+  "name": "callbacks-to-async-bench",
+  "version": "1.0.0",
+  "description": "Benchmark task: convert callback-style async code to async/await",
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "vitest": "^1.2.0"
+  }
+}

@@ -1,0 +1,575 @@
+--- a/src/db.ts
++++ b/src/db.ts
+@@ -1,66 +1,49 @@
+ /**
+- * Simulated database operations using callback pattern.
++ * Simulated database operations using Promise/async-await.
+  */
+
+-type Callback<T> = (error: Error | null, result?: T) => void;
+-
+ interface Record {
+   id: string;
+   data: string;
+   timestamp: number;
+ }
+
+ const store: Map<string, Record> = new Map();
+
+-export function dbInsert(id: string, data: string, callback: Callback<Record>): void {
+-  setTimeout(() => {
+-    if (store.has(id)) {
+-      callback(new Error(`Record with id '${id}' already exists`));
+-      return;
+-    }
+-    const record: Record = { id, data, timestamp: Date.now() };
+-    store.set(id, record);
+-    callback(null, record);
+-  }, 10);
++export async function dbInsert(id: string, data: string): Promise<Record> {
++  await new Promise((r) => setTimeout(r, 10));
++  if (store.has(id)) {
++    throw new Error(`Record with id '${id}' already exists`);
++  }
++  const record: Record = { id, data, timestamp: Date.now() };
++  store.set(id, record);
++  return record;
+ }
+
+-export function dbFind(id: string, callback: Callback<Record>): void {
+-  setTimeout(() => {
+-    const record = store.get(id);
+-    if (!record) {
+-      callback(new Error(`Record '${id}' not found`));
+-      return;
+-    }
+-    callback(null, record);
+-  }, 10);
++export async function dbFind(id: string): Promise<Record> {
++  await new Promise((r) => setTimeout(r, 10));
++  const record = store.get(id);
++  if (!record) {
++    throw new Error(`Record '${id}' not found`);
++  }
++  return record;
+ }
+
+-export function dbUpdate(id: string, data: string, callback: Callback<Record>): void {
+-  setTimeout(() => {
+-    const record = store.get(id);
+-    if (!record) {
+-      callback(new Error(`Record '${id}' not found`));
+-      return;
+-    }
+-    const updated: Record = { ...record, data, timestamp: Date.now() };
+-    store.set(id, updated);
+-    callback(null, updated);
+-  }, 10);
++export async function dbUpdate(id: string, data: string): Promise<Record> {
++  await new Promise((r) => setTimeout(r, 10));
++  const record = store.get(id);
++  if (!record) {
++    throw new Error(`Record '${id}' not found`);
++  }
++  const updated: Record = { ...record, data, timestamp: Date.now() };
++  store.set(id, updated);
++  return updated;
+ }
+
+-export function dbDelete(id: string, callback: Callback<boolean>): void {
+-  setTimeout(() => {
+-    if (!store.has(id)) {
+-      callback(new Error(`Record '${id}' not found`));
+-      return;
+-    }
+-    store.delete(id);
+-    callback(null, true);
+-  }, 10);
++export async function dbDelete(id: string): Promise<boolean> {
++  await new Promise((r) => setTimeout(r, 10));
++  if (!store.has(id)) {
++    throw new Error(`Record '${id}' not found`);
++  }
++  store.delete(id);
++  return true;
+ }
+
+-export function dbClear(callback: Callback<void>): void {
++export async function dbClear(): Promise<void> {
+   store.clear();
+-  callback(null);
+ }
+--- a/src/files.ts
++++ b/src/files.ts
+@@ -1,52 +1,39 @@
+ /**
+- * Simulated file system operations using callback pattern.
++ * Simulated file system operations using Promise/async-await.
+  */
+
+-type Callback<T> = (error: Error | null, result?: T) => void;
+-
+ const filesystem: Map<string, string> = new Map();
+
+-export function readFile(path: string, callback: Callback<string>): void {
+-  setTimeout(() => {
+-    const content = filesystem.get(path);
+-    if (content === undefined) {
+-      callback(new Error(`File not found: ${path}`));
+-      return;
+-    }
+-    callback(null, content);
+-  }, 10);
++export async function readFile(path: string): Promise<string> {
++  await new Promise((r) => setTimeout(r, 10));
++  const content = filesystem.get(path);
++  if (content === undefined) {
++    throw new Error(`File not found: ${path}`);
++  }
++  return content;
+ }
+
+-export function writeFile(path: string, content: string, callback: Callback<void>): void {
+-  setTimeout(() => {
+-    if (!path || path.trim() === '') {
+-      callback(new Error('Invalid file path'));
+-      return;
+-    }
+-    filesystem.set(path, content);
+-    callback(null);
+-  }, 10);
++export async function writeFile(path: string, content: string): Promise<void> {
++  await new Promise((r) => setTimeout(r, 10));
++  if (!path || path.trim() === '') {
++    throw new Error('Invalid file path');
++  }
++  filesystem.set(path, content);
+ }
+
+-export function deleteFile(path: string, callback: Callback<boolean>): void {
+-  setTimeout(() => {
+-    if (!filesystem.has(path)) {
+-      callback(new Error(`File not found: ${path}`));
+-      return;
+-    }
+-    filesystem.delete(path);
+-    callback(null, true);
+-  }, 10);
++export async function deleteFile(path: string): Promise<boolean> {
++  await new Promise((r) => setTimeout(r, 10));
++  if (!filesystem.has(path)) {
++    throw new Error(`File not found: ${path}`);
++  }
++  filesystem.delete(path);
++  return true;
+ }
+
+-export function listFiles(callback: Callback<string[]>): void {
+-  setTimeout(() => {
+-    callback(null, Array.from(filesystem.keys()));
+-  }, 10);
++export async function listFiles(): Promise<string[]> {
++  await new Promise((r) => setTimeout(r, 10));
++  return Array.from(filesystem.keys());
+ }
+
+-export function clearFiles(callback: Callback<void>): void {
++export async function clearFiles(): Promise<void> {
+   filesystem.clear();
+-  callback(null);
+ }
+--- a/src/network.ts
++++ b/src/network.ts
+@@ -1,57 +1,43 @@
+ /**
+- * Simulated network operations using callback pattern.
++ * Simulated network operations using Promise/async-await.
+  */
+
+-type Callback<T> = (error: Error | null, result?: T) => void;
+-
+ interface HttpResponse {
+   status: number;
+   body: string;
+-  headers: Record<string, string>;
++  headers: { [key: string]: string };
+ }
+
+ const endpoints: Map<string, { status: number; body: string }> = new Map([
+   ['/api/users', { status: 200, body: JSON.stringify([{ id: 1, name: 'Alice' }]) }],
+   ['/api/config', { status: 200, body: JSON.stringify({ theme: 'dark', lang: 'en' }) }],
+ ]);
+
+-export function httpGet(url: string, callback: Callback<HttpResponse>): void {
+-  setTimeout(() => {
+-    const endpoint = endpoints.get(url);
+-    if (!endpoint) {
+-      callback(new Error(`404: Endpoint not found: ${url}`));
+-      return;
+-    }
+-    callback(null, {
+-      status: endpoint.status,
+-      body: endpoint.body,
+-      headers: { 'content-type': 'application/json' },
+-    });
+-  }, 10);
++export async function httpGet(url: string): Promise<HttpResponse> {
++  await new Promise((r) => setTimeout(r, 10));
++  const endpoint = endpoints.get(url);
++  if (!endpoint) {
++    throw new Error(`404: Endpoint not found: ${url}`);
++  }
++  return {
++    status: endpoint.status,
++    body: endpoint.body,
++    headers: { 'content-type': 'application/json' },
++  };
+ }
+
+-export function httpPost(url: string, data: string, callback: Callback<HttpResponse>): void {
+-  setTimeout(() => {
+-    if (!url || !data) {
+-      callback(new Error('URL and data are required'));
+-      return;
+-    }
+-    callback(null, {
+-      status: 201,
+-      body: JSON.stringify({ received: JSON.parse(data), id: 'new-1' }),
+-      headers: { 'content-type': 'application/json' },
+-    });
+-  }, 10);
++export async function httpPost(url: string, data: string): Promise<HttpResponse> {
++  await new Promise((r) => setTimeout(r, 10));
++  if (!url || !data) {
++    throw new Error('URL and data are required');
++  }
++  return {
++    status: 201,
++    body: JSON.stringify({ received: JSON.parse(data), id: 'new-1' }),
++    headers: { 'content-type': 'application/json' },
++  };
+ }
+
+-export function parseJson(raw: string, callback: Callback<any>): void {
+-  setTimeout(() => {
+-    try {
+-      const parsed = JSON.parse(raw);
+-      callback(null, parsed);
+-    } catch (err) {
+-      callback(new Error(`Failed to parse JSON: ${(err as Error).message}`));
+-    }
+-  }, 5);
++export async function parseJson(raw: string): Promise<any> {
++  await new Promise((r) => setTimeout(r, 5));
++  try {
++    return JSON.parse(raw);
++  } catch (err) {
++    throw new Error(`Failed to parse JSON: ${(err as Error).message}`);
++  }
+ }
+--- a/src/pipeline.ts
++++ b/src/pipeline.ts
+@@ -1,63 +1,35 @@
+ /**
+- * Data processing pipeline using callback pattern.
+- * Chains multiple operations together.
++ * Data processing pipeline using Promise/async-await.
+  */
+
+-type Callback<T> = (error: Error | null, result?: T) => void;
+-
+-export function validate(input: string, callback: Callback<string>): void {
+-  setTimeout(() => {
+-    if (!input || input.trim().length === 0) {
+-      callback(new Error('Input must not be empty'));
+-      return;
+-    }
+-    callback(null, input.trim());
+-  }, 5);
++export async function validate(input: string): Promise<string> {
++  await new Promise((r) => setTimeout(r, 5));
++  if (!input || input.trim().length === 0) {
++    throw new Error('Input must not be empty');
++  }
++  return input.trim();
+ }
+
+-export function transform(input: string, callback: Callback<string>): void {
+-  setTimeout(() => {
+-    const result = input
+-      .toLowerCase()
+-      .replace(/[^a-z0-9\s]/g, '')
+-      .replace(/\s+/g, '-');
+-    callback(null, result);
+-  }, 5);
++export async function transform(input: string): Promise<string> {
++  await new Promise((r) => setTimeout(r, 5));
++  return input
++    .toLowerCase()
++    .replace(/[^a-z0-9\s]/g, '')
++    .replace(/\s+/g, '-');
+ }
+
+-export function enrich(input: string, callback: Callback<{ slug: string; length: number; hash: number }>): void {
+-  setTimeout(() => {
+-    let hash = 0;
+-    for (let i = 0; i < input.length; i++) {
+-      const char = input.charCodeAt(i);
+-      hash = ((hash << 5) - hash) + char;
+-      hash |= 0;
+-    }
+-    callback(null, { slug: input, length: input.length, hash });
+-  }, 5);
++export async function enrich(input: string): Promise<{ slug: string; length: number; hash: number }> {
++  await new Promise((r) => setTimeout(r, 5));
++  let hash = 0;
++  for (let i = 0; i < input.length; i++) {
++    const char = input.charCodeAt(i);
++    hash = ((hash << 5) - hash) + char;
++    hash |= 0;
++  }
++  return { slug: input, length: input.length, hash };
+ }
+
+-export function runPipeline(
+-  input: string,
+-  callback: Callback<{ slug: string; length: number; hash: number }>
+-): void {
+-  validate(input, (err, validated) => {
+-    if (err) {
+-      callback(err);
+-      return;
+-    }
+-    transform(validated!, (err2, transformed) => {
+-      if (err2) {
+-        callback(err2);
+-        return;
+-      }
+-      enrich(transformed!, (err3, result) => {
+-        if (err3) {
+-          callback(err3);
+-          return;
+-        }
+-        callback(null, result);
+-      });
+-    });
+-  });
++export async function runPipeline(input: string): Promise<{ slug: string; length: number; hash: number }> {
++  const validated = await validate(input);
++  const transformed = await transform(validated);
++  return await enrich(transformed);
+ }
+--- a/src/orchestrator.ts
++++ b/src/orchestrator.ts
+@@ -1,89 +1,37 @@
+ /**
+- * Orchestrator that coordinates multiple async callback operations.
++ * Orchestrator that coordinates multiple async operations.
+  */
+
+ import { dbInsert, dbFind, dbClear } from './db';
+ import { writeFile, readFile, clearFiles } from './files';
+ import { httpGet, parseJson } from './network';
+
+-type Callback<T> = (error: Error | null, result?: T) => void;
+-
+-export function fetchAndStore(url: string, recordId: string, callback: Callback<string>): void {
+-  httpGet(url, (err, response) => {
+-    if (err) {
+-      callback(err);
+-      return;
+-    }
+-    parseJson(response!.body, (err2, data) => {
+-      if (err2) {
+-        callback(err2);
+-        return;
+-      }
+-      const serialized = JSON.stringify(data);
+-      dbInsert(recordId, serialized, (err3, record) => {
+-        if (err3) {
+-          callback(err3);
+-          return;
+-        }
+-        callback(null, record!.data);
+-      });
+-    });
+-  });
++export async function fetchAndStore(url: string, recordId: string): Promise<string> {
++  const response = await httpGet(url);
++  const data = await parseJson(response.body);
++  const serialized = JSON.stringify(data);
++  const record = await dbInsert(recordId, serialized);
++  return record.data;
+ }
+
+-export function storeAndBackup(
++export async function storeAndBackup(
+   recordId: string,
+   data: string,
+-  backupPath: string,
+-  callback: Callback<{ dbId: string; backupFile: string }>
+-): void {
+-  dbInsert(recordId, data, (err, record) => {
+-    if (err) {
+-      callback(err);
+-      return;
+-    }
+-    writeFile(backupPath, data, (err2) => {
+-      if (err2) {
+-        callback(err2);
+-        return;
+-      }
+-      callback(null, { dbId: record!.id, backupFile: backupPath });
+-    });
+-  });
++  backupPath: string
++): Promise<{ dbId: string; backupFile: string }> {
++  const record = await dbInsert(recordId, data);
++  await writeFile(backupPath, data);
++  return { dbId: record.id, backupFile: backupPath };
+ }
+
+-export function loadFromBackup(
++export async function loadFromBackup(
+   backupPath: string,
+-  recordId: string,
+-  callback: Callback<string>
+-): void {
+-  readFile(backupPath, (err, content) => {
+-    if (err) {
+-      callback(err);
+-      return;
+-    }
+-    dbInsert(recordId, content!, (err2, record) => {
+-      if (err2) {
+-        callback(err2);
+-        return;
+-      }
+-      callback(null, record!.data);
+-    });
+-  });
++  recordId: string
++): Promise<string> {
++  const content = await readFile(backupPath);
++  const record = await dbInsert(recordId, content);
++  return record.data;
+ }
+
+-export function cleanAll(callback: Callback<void>): void {
+-  dbClear((err) => {
+-    if (err) {
+-      callback(err);
+-      return;
+-    }
+-    clearFiles((err2) => {
+-      if (err2) {
+-        callback(err2);
+-        return;
+-      }
+-      callback(null);
+-    });
+-  });
++export async function cleanAll(): Promise<void> {
++  await dbClear();
++  await clearFiles();
+ }
+--- a/src/db.test.ts
++++ b/src/db.test.ts
+@@ -1,72 +1,42 @@
+ import { dbInsert, dbFind, dbUpdate, dbDelete, dbClear } from './db';
+
+ describe('Database operations', () => {
+-  beforeEach((done) => {
+-    dbClear((err) => done());
++  beforeEach(async () => {
++    await dbClear();
+   });
+
+-  it('should insert a record', (done) => {
+-    dbInsert('r1', 'test data', (err, record) => {
+-      expect(err).toBeNull();
+-      expect(record).toBeDefined();
+-      expect(record!.id).toBe('r1');
+-      expect(record!.data).toBe('test data');
+-      done();
+-    });
++  it('should insert a record', async () => {
++    const record = await dbInsert('r1', 'test data');
++    expect(record).toBeDefined();
++    expect(record.id).toBe('r1');
++    expect(record.data).toBe('test data');
+   });
+
+-  it('should find a record by id', (done) => {
+-    dbInsert('r2', 'find me', (err) => {
+-      expect(err).toBeNull();
+-      dbFind('r2', (err2, record) => {
+-        expect(err2).toBeNull();
+-        expect(record!.data).toBe('find me');
+-        done();
+-      });
+-    });
++  it('should find a record by id', async () => {
++    await dbInsert('r2', 'find me');
++    const record = await dbFind('r2');
++    expect(record.data).toBe('find me');
+   });
+
+-  it('should return error for non-existent record', (done) => {
+-    dbFind('missing', (err) => {
+-      expect(err).toBeDefined();
+-      expect(err!.message).toContain('not found');
+-      done();
+-    });
++  it('should return error for non-existent record', async () => {
++    await expect(dbFind('missing')).rejects.toThrow('not found');
+   });
+
+-  it('should update a record', (done) => {
+-    dbInsert('r3', 'original', (err) => {
+-      expect(err).toBeNull();
+-      dbUpdate('r3', 'updated', (err2, record) => {
+-        expect(err2).toBeNull();
+-        expect(record!.data).toBe('updated');
+-        done();
+-      });
+-    });
++  it('should update a record', async () => {
++    await dbInsert('r3', 'original');
++    const record = await dbUpdate('r3', 'updated');
++    expect(record.data).toBe('updated');
+   });
+
+-  it('should delete a record', (done) => {
+-    dbInsert('r4', 'delete me', (err) => {
+-      expect(err).toBeNull();
+-      dbDelete('r4', (err2, result) => {
+-        expect(err2).toBeNull();
+-        expect(result).toBe(true);
+-        dbFind('r4', (err3) => {
+-          expect(err3).toBeDefined();
+-          done();
+-        });
+-      });
+-    });
++  it('should delete a record', async () => {
++    await dbInsert('r4', 'delete me');
++    const result = await dbDelete('r4');
++    expect(result).toBe(true);
++    await expect(dbFind('r4')).rejects.toThrow();
+   });
+
+-  it('should reject duplicate insert', (done) => {
+-    dbInsert('r5', 'first', (err) => {
+-      expect(err).toBeNull();
+-      dbInsert('r5', 'duplicate', (err2) => {
+-        expect(err2).toBeDefined();
+-        expect(err2!.message).toContain('already exists');
+-        done();
+-      });
+-    });
++  it('should reject duplicate insert', async () => {
++    await dbInsert('r5', 'first');
++    await expect(dbInsert('r5', 'duplicate')).rejects.toThrow('already exists');
+   });
+ });

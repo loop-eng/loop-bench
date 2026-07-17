@@ -1,0 +1,110 @@
+--- a/src/processor.py
++++ b/src/processor.py
+@@ -1,6 +1,29 @@
+ """Data processor that transforms records from a source."""
+
++import json
++import logging
++import sys
+ from typing import Any
++
++
++class JsonFormatter(logging.Formatter):
++    """Format log records as JSON objects."""
++
++    def format(self, record: logging.LogRecord) -> str:
++        log_entry = {
++            "timestamp": self.formatTime(record, self.datefmt),
++            "level": record.levelname,
++            "message": record.getMessage(),
++            "logger": record.name,
++        }
++        return json.dumps(log_entry)
++
++
++logger = logging.getLogger("processor")
++logger.setLevel(logging.DEBUG)
++handler = logging.StreamHandler(sys.stderr)
++handler.setFormatter(JsonFormatter())
++if not logger.handlers:
++    logger.addHandler(handler)
+
+
+ def validate_record(record: dict[str, Any]) -> bool:
+@@ -9,32 +32,32 @@
+     for field in required:
+         if field not in record:
+-            print(f"WARN: Record missing required field: {field}")
++            logger.warning("Record missing required field: %s", field)
+             return False
+     if not isinstance(record["value"], (int, float)):
+-        print(f"WARN: Record {record['id']} has non-numeric value")
++        logger.warning("Record %s has non-numeric value", record["id"])
+         return False
+     return True
+
+
+ def transform_record(record: dict[str, Any]) -> dict[str, Any]:
+     """Transform a single record by normalizing values."""
+-    print(f"DEBUG: Transforming record {record['id']}")
++    logger.debug("Transforming record %s", record["id"])
+     transformed = {
+         "id": record["id"],
+         "name": record["name"].strip().title(),
+         "value": round(float(record["value"]), 2),
+         "processed": True,
+     }
+-    print(f"DEBUG: Record {record['id']} transformed successfully")
++    logger.debug("Record %s transformed successfully", record["id"])
+     return transformed
+
+
+ def process_batch(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+     """Process a batch of records, skipping invalid ones."""
+-    print(f"INFO: Starting batch processing of {len(records)} records")
++    logger.info("Starting batch processing of %d records", len(records))
+     results = []
+     skipped = 0
+
+     for record in records:
+         if not validate_record(record):
+-            print(f"WARN: Skipping invalid record: {record}")
++            logger.warning("Skipping invalid record: %s", record)
+             skipped += 1
+             continue
+         try:
+             transformed = transform_record(record)
+             results.append(transformed)
+         except Exception as e:
+-            print(f"ERROR: Failed to transform record {record.get('id', '?')}: {e}")
++            logger.error("Failed to transform record %s: %s", record.get("id", "?"), e)
+             skipped += 1
+
+-    print(f"INFO: Batch complete. Processed: {len(results)}, Skipped: {skipped}")
++    logger.info("Batch complete. Processed: %d, Skipped: %d", len(results), skipped)
+     return results
+
+
+ def process_pipeline(
+     records: list[dict[str, Any]],
+     filter_fn: Any = None,
+ ) -> dict[str, Any]:
+     """Run the full processing pipeline on records."""
+-    print("INFO: Pipeline started")
++    logger.info("Pipeline started")
+
+     if filter_fn is not None:
+-        print("DEBUG: Applying pre-filter")
++        logger.debug("Applying pre-filter")
+         records = [r for r in records if filter_fn(r)]
+-        print(f"DEBUG: {len(records)} records after filtering")
++        logger.debug("%d records after filtering", len(records))
+
+     results = process_batch(records)
+
+     total_value = sum(r["value"] for r in results)
+-    print(f"INFO: Pipeline complete. Total value: {total_value}")
++    logger.info("Pipeline complete. Total value: %s", total_value)
+
+     return {
+         "records": results,

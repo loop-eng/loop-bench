@@ -1,0 +1,39 @@
+id: "refac-extract-021"
+name: "Extract shared validation logic"
+category: "refactoring"
+difficulty: "medium"
+language: "typescript"
+description: |
+  Three handler files (create.ts, update.ts, delete.ts) each contain
+  identical copy-pasted validation logic for email and name fields.
+  This violates DRY and makes maintenance error-prone.
+goal: |
+  Extract the shared validation functions into a common module at
+  src/shared/validation.ts and update all three handlers to import
+  from it. All existing tests must continue to pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/handlers/create.ts", "src/handlers/update.ts", "src/handlers/delete.ts", "src/shared/validation.ts"]
+  lines_changed: 80
+rubric:
+  - criterion: "Shared module created with validation functions"
+    weight: 0.3
+    check: "ast"
+  - criterion: "No duplicate validation code across handlers"
+    weight: 0.3
+    check: "grep"
+  - criterion: "All handlers import from shared module"
+    weight: 0.2
+    check: "grep"
+  - criterion: "All existing tests pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 15

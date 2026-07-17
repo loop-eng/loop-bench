@@ -1,0 +1,58 @@
+--- a/src/webhook.ts
++++ b/src/webhook.ts
+@@ -1,7 +1,33 @@
+-import express, { Request, Response } from "express";
++import express, { Request, Response, NextFunction } from "express";
++import crypto from "node:crypto";
+
+ const app = express();
+-app.use(express.json());
++
++// Parse JSON and keep raw body for signature verification
++app.use(express.json({
++  verify: (req: any, _res, buf) => {
++    req.rawBody = buf;
++  },
++}));
+
+ export const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET || "test-secret-key";
+
++function verifySignature(req: Request, res: Response, next: NextFunction): void {
++  const signature = req.headers["x-signature-256"] as string | undefined;
++
++  if (!signature) {
++    res.status(401).json({ error: "Missing signature header" });
++    return;
++  }
++
++  const rawBody = (req as any).rawBody as Buffer;
++  const expected = "sha256=" + crypto.createHmac("sha256", WEBHOOK_SECRET).update(rawBody).digest("hex");
++
++  const sigBuffer = Buffer.from(signature);
++  const expectedBuffer = Buffer.from(expected);
++
++  if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
++    res.status(401).json({ error: "Invalid signature" });
++    return;
++  }
++
++  next();
++}
++
+ interface WebhookEvent {
+@@ -14,7 +40,7 @@
+
+ const receivedEvents: WebhookEvent[] = [];
+
+-app.post("/webhooks/events", (req: Request, res: Response) => {
++app.post("/webhooks/events", verifySignature, (req: Request, res: Response) => {
+   const event: WebhookEvent = {
+     event: req.body.event,
+     timestamp: req.body.timestamp || new Date().toISOString(),
+@@ -42,7 +68,7 @@
+   });
+ });
+
+-app.post("/webhooks/events/batch", (req: Request, res: Response) => {
++app.post("/webhooks/events/batch", verifySignature, (req: Request, res: Response) => {
+   const { events } = req.body;

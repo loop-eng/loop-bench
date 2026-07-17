@@ -1,0 +1,25 @@
+--- a/src/server.ts
++++ b/src/server.ts
+@@ -72,6 +72,22 @@
+   const path = url.pathname;
+   const method = req.method ?? "GET";
+
++  // GET /health - liveness probe
++  if (method === "GET" && path === "/health") {
++    sendJson(res, 200, { status: "ok" });
++    return;
++  }
++
++  // GET /ready - readiness probe
++  if (method === "GET" && path === "/ready") {
++    if (isDependencyAvailable()) {
++      sendJson(res, 200, { status: "ready" });
++    } else {
++      sendJson(res, 503, { status: "unavailable" });
++    }
++    return;
++  }
++
+   // GET /items
+   if (method === "GET" && path === "/items") {
+     sendJson(res, 200, { items: getItems() });

@@ -1,0 +1,41 @@
+id: "feat-health-019"
+name: "Add health and readiness endpoints"
+category: "feature"
+difficulty: "easy"
+language: "typescript"
+description: |
+  The HTTP server in src/server.ts has business endpoints for managing items
+  but no health check or readiness probe. Kubernetes deployments need /health
+  and /ready endpoints to determine if the service is alive and able to
+  serve traffic.
+goal: |
+  Add a /health endpoint that always returns 200 with a JSON status, and
+  a /ready endpoint that checks dependency availability and returns 200
+  when ready or 503 when not. Both must return JSON with a status field.
+  All existing tests must continue to pass.
+repo:
+  base_image: "node"
+  setup_command: "npm install"
+  test_command: "npx vitest run"
+  build_command: "npx tsc --noEmit"
+ground_truth:
+  patch_file: "ground-truth/fix.patch"
+  files_changed: ["src/server.ts"]
+  lines_changed: 30
+rubric:
+  - criterion: "Separate /health and /ready endpoints both implemented"
+    weight: 0.4
+    check: "test"
+  - criterion: "Returns proper HTTP status codes (200 and 503)"
+    weight: 0.3
+    check: "test"
+  - criterion: "JSON response body includes a status field"
+    weight: 0.1
+    check: "grep"
+  - criterion: "All existing tests continue to pass"
+    weight: 0.2
+    check: "test"
+constraints:
+  max_iterations: 20
+  max_cost_usd: 5.00
+  timeout_minutes: 10

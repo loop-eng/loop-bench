@@ -1,0 +1,190 @@
+diff --git a/config/config.go b/config/config.go
+new file mode 100644
+index 0000000..e8a3b1c
+--- /dev/null
++++ b/config/config.go
+@@ -0,0 +1,98 @@
++package config
++
++// Config holds the unified application configuration.
++// All configuration sources are merged into this single struct.
++type Config struct {
++	Host     string
++	Port     int
++	Debug    bool
++	LogLevel string
++	DBHost   string
++	DBPort   int
++	DBName   string
++	Workers  int
++}
++
++// Defaults returns a Config populated with sensible default values.
++func Defaults() Config {
++	return Config{
++		Host:     "localhost",
++		Port:     8080,
++		Debug:    false,
++		LogLevel: "info",
++		DBHost:   "localhost",
++		DBPort:   5432,
++		DBName:   "app",
++		Workers:  4,
++	}
++}
++
++// LoadConfig loads configuration with clear precedence ordering:
++//
++//	defaults < config file < environment variables < CLI flags
++//
++// Each layer only overrides fields it explicitly sets (non-zero values).
++// If filePath is empty or the file does not exist, the file layer is skipped.
++// If args is nil or empty, the CLI flag layer is skipped.
++func LoadConfig(filePath string, args []string) Config {
++	cfg := Defaults()
++
++	// Layer 1: Config file (lowest priority after defaults)
++	if filePath != "" {
++		if fileCfg, err := LoadFromFile(filePath); err == nil && fileCfg.Loaded {
++			mergeFileConfig(&cfg, fileCfg)
++		}
++	}
++
++	// Layer 2: Environment variables
++	envCfg := LoadFromEnv()
++	mergeEnvConfig(&cfg, envCfg)
++
++	// Layer 3: CLI flags (highest priority)
++	if len(args) > 0 {
++		flagCfg := ParseFlags(args)
++		if flagCfg.Parsed {
++			mergeFlagConfig(&cfg, flagCfg)
++		}
++	}
++
++	return cfg
++}
++
++func mergeFileConfig(dst *Config, src FileConfig) {
++	if src.Host != "" {
++		dst.Host = src.Host
++	}
++	if src.Port != 0 {
++		dst.Port = src.Port
++	}
++	if src.Debug {
++		dst.Debug = src.Debug
++	}
++	if src.LogLevel != "" {
++		dst.LogLevel = src.LogLevel
++	}
++	if src.DBHost != "" {
++		dst.DBHost = src.DBHost
++	}
++	if src.DBPort != 0 {
++		dst.DBPort = src.DBPort
++	}
++	if src.DBName != "" {
++		dst.DBName = src.DBName
++	}
++	if src.Workers != 0 {
++		dst.Workers = src.Workers
++	}
++}
++
++func mergeEnvConfig(dst *Config, src EnvConfig) {
++	if src.Host != "" {
++		dst.Host = src.Host
++	}
++	if src.Port != 0 {
++		dst.Port = src.Port
++	}
++	if src.Debug {
++		dst.Debug = src.Debug
++	}
++	if src.LogLevel != "" {
++		dst.LogLevel = src.LogLevel
++	}
++	if src.DBHost != "" {
++		dst.DBHost = src.DBHost
++	}
++	if src.DBPort != 0 {
++		dst.DBPort = src.DBPort
++	}
++	if src.DBName != "" {
++		dst.DBName = src.DBName
++	}
++	if src.Workers != 0 {
++		dst.Workers = src.Workers
++	}
++}
++
++func mergeFlagConfig(dst *Config, src FlagConfig) {
++	if src.Host != "" {
++		dst.Host = src.Host
++	}
++	if src.Port != 0 {
++		dst.Port = src.Port
++	}
++	if src.Debug {
++		dst.Debug = src.Debug
++	}
++	if src.LogLevel != "" {
++		dst.LogLevel = src.LogLevel
++	}
++	if src.DBHost != "" {
++		dst.DBHost = src.DBHost
++	}
++	if src.DBPort != 0 {
++		dst.DBPort = src.DBPort
++	}
++	if src.DBName != "" {
++		dst.DBName = src.DBName
++	}
++	if src.Workers != 0 {
++		dst.Workers = src.Workers
++	}
++}
+diff --git a/config/env.go b/config/env.go
+index a1b2c3d..d4e5f6a 100644
+--- a/config/env.go
++++ b/config/env.go
+@@ -4,7 +4,8 @@ import (
+ 	"os"
+ 	"strconv"
+ )
+
+-// EnvConfig holds configuration loaded from environment variables.
++// EnvConfig holds configuration loaded from environment variables.
++// Priority: layer 2 of 3 (overrides file, overridden by CLI flags).
+ type EnvConfig struct {
+ 	Host     string
+ 	Port     int
+diff --git a/config/file.go b/config/file.go
+index b2c3d4e..e5f6a7b 100644
+--- a/config/file.go
++++ b/config/file.go
+@@ -6,7 +6,8 @@ import (
+ 	"strings"
+ )
+
+-// FileConfig holds configuration loaded from a config file.
++// FileConfig holds configuration loaded from a config file.
++// Priority: layer 1 of 3 (lowest priority, overridden by env and CLI).
+ type FileConfig struct {
+ 	Host     string
+ 	Port     int
+diff --git a/config/flags.go b/config/flags.go
+index c3d4e5f..f6a7b8c 100644
+--- a/config/flags.go
++++ b/config/flags.go
+@@ -5,7 +5,8 @@ import (
+ 	"strings"
+ )
+
+-// FlagConfig holds configuration loaded from command-line flags.
++// FlagConfig holds configuration loaded from command-line flags.
++// Priority: layer 3 of 3 (highest priority, overrides env and file).
+ type FlagConfig struct {
+ 	Host     string
+ 	Port     int
