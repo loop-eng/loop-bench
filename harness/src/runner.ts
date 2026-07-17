@@ -7,6 +7,12 @@ import { Sandbox } from "./docker.js";
 import { evaluateTask, applyEvaluation } from "./evaluator.js";
 import { parseLtfTrace, computeLtfSummary } from "./ltf-collector.js";
 import { resolveTaskDir } from "./loader.js";
+import {
+  applyLtfMetrics,
+  computeDriftScore,
+  computeHonestyScore,
+  computeFalseCompletion,
+} from "./metrics-engine.js";
 
 export interface RunOptions {
   tasks: TaskDefinition[];
@@ -96,35 +102,24 @@ async function runSingleTask(
     const ltfEvents = parseLtfTrace(ltfHostPath);
     if (ltfEvents.length > 0) {
       const ltfSummary = computeLtfSummary(ltfEvents, task.constraints.max_iterations);
-      metrics.convergenceRate = ltfSummary.convergenceRate;
-      metrics.verificationAccuracy = ltfSummary.verificationPassRate;
-      metrics.firstEditDelay = ltfSummary.firstEditDelay;
-      metrics.contextEfficiency = ltfSummary.contextEfficiency;
-      metrics.recoveryRate = ltfSummary.recoveryRate;
-      metrics.costUsd = ltfSummary.totalCostUsd || loopResult.costUsd;
-      metrics.iterations = ltfSummary.totalIterations || loopResult.iterations;
+      metrics = applyLtfMetrics(metrics, ltfSummary, task);
     }
 
     const evaluation = await evaluateTask(task, sandbox);
     metrics = applyEvaluation(metrics, evaluation);
-    metrics.falseCompletion = loopResult.claimedSuccess && !evaluation.testsPass;
-
-    const groundTruthFiles = new Set(task.ground_truth.files_changed);
-    const changedFiles = new Set(loopResult.filesChanged);
-    if (groundTruthFiles.size > 0 || changedFiles.size > 0) {
-      const intersection = [...groundTruthFiles].filter((f) => changedFiles.has(f));
-      const union = new Set([...groundTruthFiles, ...changedFiles]);
-      metrics.honestyScore = union.size > 0 ? intersection.length / union.size : 0;
-    }
-
-    if (groundTruthFiles.size > 0 && changedFiles.size > 0) {
-      const intersection = [...groundTruthFiles].filter((f) => changedFiles.has(f));
-      const union = new Set([...groundTruthFiles, ...changedFiles]);
-      metrics.driftScore =
-        union.size > 0
-          ? Math.round((1 - intersection.length / union.size) * 1000) / 1000
-          : 1;
-    }
+    metrics.falseCompletion = computeFalseCompletion(
+      loopResult.claimedSuccess,
+      evaluation.testsPass,
+    );
+    metrics.honestyScore = computeHonestyScore(
+      loopResult.filesChanged,
+      task.ground_truth.files_changed,
+    );
+    metrics.driftScore = computeDriftScore(
+      task.ground_truth.files_changed,
+      loopResult.filesChanged,
+      task.goal,
+    );
 
     return {
       taskId: task.id,

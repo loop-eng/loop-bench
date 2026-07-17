@@ -46,3 +46,22 @@ export { loadTasks, loadSingleTask, resolveTaskDir } from "./loader.js";
 
 export type { LtfEvent, LtfSummary } from "./ltf-collector.js";
 export { parseLtfTrace, computeLtfSummary } from "./ltf-collector.js";
+
+export type { CompositeWeights, ConfidenceInterval } from "./metrics-engine.js";
+export {
+  computeConvergenceRate,
+  computeCostEfficiency,
+  computeVerificationAccuracy,
+  computeDriftScore,
+  computeFalseCompletion,
+  computeErosionScore,
+  computeVerbosityScore,
+  computeHonestyScore,
+  computeFirstEditDelay,
+  computeContextEfficiency,
+  computeRecoveryRate,
+  computeCompositeScore,
+  bootstrapCI,
+  compareLoopDesigns,
+  applyLtfMetrics,
+} from "./metrics-engine.js";
