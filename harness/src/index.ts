@@ -37,3 +37,6 @@ export {
 
 export type { ValidationError, ValidationResult } from "./validate.js";
 export { validateTask, validateResult } from "./validate.js";
+
+export type { SandboxOptions, ExecResult } from "./docker.js";
+export { Sandbox, createSandbox, getBaseImage } from "./docker.js";
