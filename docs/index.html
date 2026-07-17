@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>loop-bench Leaderboard</title>
+  <meta name="description" content="SWE-bench for loop designs. Compare loop architectures across 11 metrics.">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1><span>loop-bench</span> Leaderboard</h1>
+      <p>SWE-bench for loop designs. Compare loop architectures across convergence, cost, drift, honesty, and erosion.</p>
+      <div class="meta">
+        <span class="meta-item">Version <strong id="meta-version">-</strong></span>
+        <span class="meta-item"><strong id="meta-tasks">-</strong> tasks</span>
+        <span class="meta-item"><strong id="meta-submissions">-</strong> submissions</span>
+        <span class="meta-item">Updated <strong id="meta-date">-</strong></span>
+      </div>
+    </header>
+
+    <div class="filters">
+      <label for="filter-model">Model:</label>
+      <select id="filter-model">
+        <option value="all">All Models</option>
+      </select>
+    </div>
+
+    <div class="table-wrapper">
+      <table>
+        <thead id="table-head"></thead>
+        <tbody id="table-body">
+          <tr><td colspan="12" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer>
+      <p>
+        <a href="https://github.com/loop-eng/loop-bench">loop-bench</a> &mdash;
+        the open benchmark for loop architecture quality.
+        Part of the <a href="https://github.com/loop-eng">loop-eng</a> ecosystem.
+      </p>
+      <p style="margin-top: 8px;">
+        Methodology: hold model constant, vary loop design, measure 11 metrics via
+        <a href="https://github.com/loop-eng/ltf">LTF</a> traces.
+        <a href="https://github.com/loop-eng/loop-bench/blob/main/spec/BENCHMARK.md">Read the spec</a>.
+      </p>
+    </footer>
+  </div>
+
+  <script src="assets/app.js"></script>
+</body>
+</html>
