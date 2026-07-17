@@ -34,3 +34,6 @@ export {
   calculateCost,
   listSupportedModels,
 } from "./cost-tracker.js";
+
+export type { ValidationError, ValidationResult } from "./validate.js";
+export { validateTask, validateResult } from "./validate.js";

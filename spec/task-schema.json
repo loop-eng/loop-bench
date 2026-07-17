@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/loop-eng/loop-bench/spec/task-schema.json",
+  "title": "Loop-Bench Task Definition",
+  "description": "Schema for loop-bench task.yaml files. Each task defines a benchmark problem for evaluating loop architecture quality.",
+  "type": "object",
+  "required": [
+    "id",
+    "name",
+    "category",
+    "difficulty",
+    "language",
+    "description",
+    "goal",
+    "repo",
+    "ground_truth",
+    "rubric",
+    "constraints"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+-[0-9]{3}$",
+      "description": "Unique task identifier. Format: category-subcategory-NNN (e.g., bug-fix-001)."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 100,
+      "description": "Human-readable task name."
+    },
+    "category": {
+      "type": "string",
+      "enum": ["bug-fix", "feature", "refactoring", "multi-step"],
+      "description": "Task category."
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": ["easy", "medium", "hard"],
+      "description": "Task difficulty level."
+    },
+    "language": {
+      "type": "string",
+      "enum": ["typescript", "python", "go"],
+      "description": "Primary programming language of the task repository."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 20,
+      "description": "Detailed description of the problem. Shown to the loop agent."
+    },
+    "goal": {
+      "type": "string",
+      "minLength": 20,
+      "description": "What the loop should accomplish. Shown to the loop agent."
+    },
+    "repo": {
+      "type": "object",
+      "required": ["base_image", "setup_command", "test_command"],
+      "additionalProperties": false,
+      "properties": {
+        "base_image": {
+          "type": "string",
+          "enum": ["node", "python", "go"],
+          "description": "Docker base image to use for this task."
+        },
+        "setup_command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Command to install dependencies (e.g., 'npm install')."
+        },
+        "test_command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Command to run tests (e.g., 'npm test')."
+        },
+        "build_command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional build/typecheck command (e.g., 'npx tsc --noEmit')."
+        }
+      },
+      "description": "Repository configuration for the Docker sandbox."
+    },
+    "ground_truth": {
+      "type": "object",
+      "required": ["patch_file", "files_changed", "lines_changed"],
+      "additionalProperties": false,
+      "properties": {
+        "patch_file": {
+          "type": "string",
+          "pattern": "\\.(patch|diff)$",
+          "description": "Path to the ground truth patch file, relative to the task directory."
+        },
+        "files_changed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "description": "List of files modified by the ground truth patch."
+        },
+        "lines_changed": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Total number of lines changed by the ground truth patch."
+        }
+      },
+      "description": "Expected solution metadata. Used for drift scoring, not direct evaluation."
+    },
+    "rubric": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["criterion", "weight", "check"],
+        "additionalProperties": false,
+        "properties": {
+          "criterion": {
+            "type": "string",
+            "minLength": 5,
+            "description": "Human-readable description of the quality criterion."
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Weight of this criterion in the rubric score (0.0–1.0)."
+          },
+          "check": {
+            "type": "string",
+            "enum": ["ast", "grep", "test", "manual"],
+            "description": "How this criterion is evaluated."
+          }
+        }
+      },
+      "minItems": 1,
+      "description": "Structural quality rubric. Weights must sum to 1.0."
+    },
+    "constraints": {
+      "type": "object",
+      "required": ["max_iterations", "max_cost_usd", "timeout_minutes"],
+      "additionalProperties": false,
+      "properties": {
+        "max_iterations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum number of loop iterations allowed."
+        },
+        "max_cost_usd": {
+          "type": "number",
+          "minimum": 0.01,
+          "maximum": 50,
+          "description": "Maximum API cost in USD."
+        },
+        "timeout_minutes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 60,
+          "description": "Maximum wall-clock time in minutes."
+        }
+      },
+      "description": "Budget constraints for the loop execution."
+    }
+  }
+}

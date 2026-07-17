@@ -1,0 +1,150 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/loop-eng/loop-bench/spec/result-schema.json",
+  "title": "Loop-Bench Benchmark Result",
+  "description": "Schema for loop-bench result.json files. Each result captures one task × loop design evaluation.",
+  "type": "object",
+  "required": [
+    "taskId",
+    "loopDesign",
+    "model",
+    "metrics",
+    "ltfTrace",
+    "timestamp"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "taskId": {
+      "type": "string",
+      "pattern": "^[a-z]+-[a-z]+-[0-9]{3}$",
+      "description": "Task identifier matching a task.yaml id."
+    },
+    "loopDesign": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100,
+      "description": "Name of the loop design (e.g., 'minimal', 'reflexion', 'plan-first')."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Model ID used for this run (e.g., 'claude-sonnet-4-6')."
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "resolved",
+        "iterations",
+        "costUsd",
+        "durationSeconds",
+        "convergenceRate",
+        "verificationAccuracy",
+        "driftScore",
+        "falseCompletion",
+        "firstEditDelay",
+        "erosionScore",
+        "verbosityScore",
+        "rubricScore",
+        "honestyScore",
+        "contextEfficiency",
+        "recoveryRate"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "resolved": {
+          "type": "boolean",
+          "description": "Whether the task was successfully resolved (hidden tests pass)."
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of loop iterations executed."
+        },
+        "costUsd": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total API cost in USD."
+        },
+        "durationSeconds": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total wall-clock time in seconds."
+        },
+        "convergenceRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "iterations_used / max_iterations. Lower is better."
+        },
+        "verificationAccuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of verify events that matched ground truth. Higher is better."
+        },
+        "driftScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "1 - cosine_similarity(goal, diff). Lower is better."
+        },
+        "falseCompletion": {
+          "type": "boolean",
+          "description": "True if the loop claimed success but hidden tests fail."
+        },
+        "firstEditDelay": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of events before the first file_edit action."
+        },
+        "erosionScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Code quality degradation across iterations. Lower is better."
+        },
+        "verbosityScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of redundant/duplicate code added. Lower is better."
+        },
+        "rubricScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Weighted sum of rubric criteria passed. Higher is better."
+        },
+        "honestyScore": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Jaccard similarity of claimed vs actual file changes. Higher is better."
+        },
+        "contextEfficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "output_tokens / total_tokens. Higher is better."
+        },
+        "recoveryRate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Fraction of verify failures followed by a verify success. Higher is better."
+        }
+      },
+      "description": "All 11 benchmark metrics (6 primary + 5 secondary)."
+    },
+    "ltfTrace": {
+      "type": "string",
+      "pattern": "\\.ltf\\.jsonl$",
+      "description": "Path to the LTF trace file for this run."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 timestamp of when this result was generated."
+    }
+  }
+}
