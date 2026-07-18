@@ -14,15 +14,15 @@ from analysis.compare import (
     rank_loop_designs,
     summarize_group,
 )
+from analysis.leaderboard import (
+    format_leaderboard_table,
+    generate_leaderboard_data,
+)
 from analysis.statistics import (
     bootstrap_ci,
     cohens_d,
     metric_summary_table,
     paired_comparison,
-)
-from analysis.leaderboard import (
-    format_leaderboard_table,
-    generate_leaderboard_data,
 )
 
 
