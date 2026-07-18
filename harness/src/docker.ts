@@ -2,6 +2,7 @@ import Docker from "dockerode";
 import { resolve } from "node:path";
 import { mkdirSync, existsSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { PassThrough } from "node:stream";
 import type { BaseImage, TaskDefinition } from "./types.js";
 
 const BASE_IMAGES: Record<BaseImage, string> = {
@@ -124,7 +125,6 @@ export class Sandbox {
           }
         }, timeout);
 
-        const { PassThrough } = require("node:stream") as typeof import("node:stream");
         const stdoutStream = new PassThrough();
         const stderrStream = new PassThrough();
         stdoutStream.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf-8"); });
