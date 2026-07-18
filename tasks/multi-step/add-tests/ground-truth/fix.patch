@@ -1,6 +1,6 @@
 --- a/src/utils/strings.test.ts
 +++ b/src/utils/strings.test.ts
-@@ -1,3 +1,153 @@
+@@ -1,3 +1,170 @@
  import { slugify, truncate, capitalize, escapeHtml, stripTags, camelToKebab } from './strings';
 
 -describe('strings', () => {});
@@ -24,6 +24,11 @@
 +
 +    it('should trim leading and trailing whitespace', () => {
 +      expect(slugify('  hello world  ')).toBe('hello-world');
++    });
++
++    it('should handle accented and unicode characters', () => {
++      // \w does not match accented chars, so they are stripped
++      expect(slugify('café crème')).toBe('caf-crme');
 +    });
 +  });
 +
@@ -64,6 +69,10 @@
 +
 +    it('should not alter the rest of the string', () => {
 +      expect(capitalize('hELLO wORLD')).toBe('HELLO wORLD');
++    });
++
++    it('should handle accented first character', () => {
++      expect(capitalize('état')).toBe('État');
 +    });
 +  });
 +
@@ -112,6 +121,10 @@
 +
 +    it('should strip tags with attributes', () => {
 +      expect(stripTags('<a href="http://example.com">link</a>')).toBe('link');
++    });
++
++    it('should preserve unicode content inside tags', () => {
++      expect(stripTags('<p>café résumé</p>')).toBe('café résumé');
 +    });
 +  });
 +

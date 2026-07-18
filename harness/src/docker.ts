@@ -124,9 +124,12 @@ export class Sandbox {
           }
         }, timeout);
 
-        stream.on("data", (chunk: Buffer) => {
-          stdout += chunk.toString("utf-8");
-        });
+        const { PassThrough } = require("node:stream") as typeof import("node:stream");
+        const stdoutStream = new PassThrough();
+        const stderrStream = new PassThrough();
+        stdoutStream.on("data", (chunk: Buffer) => { stdout += chunk.toString("utf-8"); });
+        stderrStream.on("data", (chunk: Buffer) => { stderr += chunk.toString("utf-8"); });
+        this.docker.modem.demuxStream(stream, stdoutStream, stderrStream);
 
         stream.on("end", () => {
           if (settled) return;

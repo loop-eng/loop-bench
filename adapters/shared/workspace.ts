@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 import { readFileSync, writeFileSync, existsSync, readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 export interface ShellResult {
   stdout: string;
@@ -40,8 +40,16 @@ export function shellExec(
   }
 }
 
+function assertContained(repoPath: string, filePath: string): string {
+  const full = resolve(repoPath, filePath);
+  if (!full.startsWith(resolve(repoPath))) {
+    throw new Error(`Path traversal blocked: ${filePath}`);
+  }
+  return full;
+}
+
 export function readFile(repoPath: string, filePath: string): string {
-  const fullPath = join(repoPath, filePath);
+  const fullPath = assertContained(repoPath, filePath);
   if (!existsSync(fullPath)) return "";
   return readFileSync(fullPath, "utf-8");
 }
@@ -51,7 +59,7 @@ export function writeFile(
   filePath: string,
   content: string,
 ): void {
-  writeFileSync(join(repoPath, filePath), content);
+  writeFileSync(assertContained(repoPath, filePath), content);
 }
 
 export function listSourceFiles(

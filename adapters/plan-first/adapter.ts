@@ -189,7 +189,11 @@ export class PlanFirstAdapter implements LoopAdapter {
       }
     }
 
-    if (!claimedSuccess && terminationReason === "max_iterations") {
+    if (
+      !claimedSuccess &&
+      terminationReason === "max_iterations" &&
+      replanCount <= maxReplans
+    ) {
       ltf.terminate("max_iterations");
     }
 

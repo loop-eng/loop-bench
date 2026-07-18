@@ -93,10 +93,11 @@ def cohens_d(group_a: list[float], group_b: list[float]) -> float:
     mean_a = sum(group_a) / len(group_a)
     mean_b = sum(group_b) / len(group_b)
 
-    var_a = sum((x - mean_a) ** 2 for x in group_a) / max(len(group_a) - 1, 1)
-    var_b = sum((x - mean_b) ** 2 for x in group_b) / max(len(group_b) - 1, 1)
+    n_a, n_b = len(group_a), len(group_b)
+    var_a = sum((x - mean_a) ** 2 for x in group_a) / max(n_a - 1, 1)
+    var_b = sum((x - mean_b) ** 2 for x in group_b) / max(n_b - 1, 1)
 
-    pooled_std = math.sqrt((var_a + var_b) / 2)
+    pooled_std = math.sqrt(((n_a - 1) * var_a + (n_b - 1) * var_b) / max(n_a + n_b - 2, 1))
     if pooled_std == 0:
         return 0.0
 

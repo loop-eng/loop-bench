@@ -108,6 +108,11 @@ program
       const raw = readFileSync(resultsPath, "utf-8");
       const results = JSON.parse(raw) as BenchmarkResult[];
 
+      if (results.length === 0) {
+        console.error(pc.yellow("No results found in file."));
+        return;
+      }
+
       let valid = 0;
       let invalid = 0;
 
@@ -146,6 +151,10 @@ program
   .action((opts) => {
     try {
       const resultsPath = resolve(opts.results);
+      if (!existsSync(resultsPath)) {
+        console.error(pc.red(`Results file not found: ${resultsPath}`));
+        process.exit(1);
+      }
       const raw = readFileSync(resultsPath, "utf-8");
       const results = JSON.parse(raw) as BenchmarkResult[];
       const summaries = generateReport(results);
@@ -284,4 +293,98 @@ program
     }
   });
 
+program
+  .command("init")
+  .description("Scaffold a custom loop adapter")
+  .argument("<name>", "Adapter name (e.g., my-loop)")
+  .option("-d, --dir <dir>", "Output directory", ".")
+  .action((name: string, opts) => {
+    const dir = resolve(opts.dir, name);
+    if (existsSync(dir)) {
+      console.error(pc.red(`Directory already exists: ${dir}`));
+      process.exit(1);
+    }
+
+    mkdirSync(dir, { recursive: true });
+
+    const adapterCode = `import type { LoopAdapter, LoopRunConfig, LoopRunResult } from "@loop-eng/bench";
+
+export class ${toPascalCase(name)}Adapter implements LoopAdapter {
+  name = "${name}";
+
+  async run(config: LoopRunConfig): Promise<LoopRunResult> {
+    const startTime = Date.now();
+    let iteration = 0;
+    let claimedSuccess = false;
+    let terminationReason = "max_iterations";
+
+    while (iteration < config.constraints.max_iterations) {
+      iteration++;
+
+      // TODO: Your loop logic here
+      // 1. Call your LLM with config.goal and repo context
+      // 2. Apply code changes to config.repoPath
+      // 3. Run tests: config.testCommand
+      // 4. If tests pass, set claimedSuccess = true and break
+      // 5. Otherwise, decide whether to continue or stop
+
+      break; // Remove this — placeholder to prevent infinite loop
+    }
+
+    return {
+      claimedSuccess,
+      terminationReason,
+      iterations: iteration,
+      costUsd: 0,
+      durationMs: Date.now() - startTime,
+      ltfTracePath: config.ltfOutputPath,
+      filesChanged: [],
+    };
+  }
+}
+
+const adapter: LoopAdapter = new ${toPascalCase(name)}Adapter();
+export default adapter;
+`;
+
+    const pkgJson = JSON.stringify(
+      {
+        name: `loop-adapter-${name}`,
+        version: "0.1.0",
+        private: true,
+        type: "module",
+        main: "adapter.ts",
+        dependencies: { "@loop-eng/bench": "^0.1.0" },
+        devDependencies: { typescript: "^5.8.0" },
+      },
+      null,
+      2,
+    );
+
+    writeFileSync(resolve(dir, "adapter.ts"), adapterCode);
+    writeFileSync(resolve(dir, "package.json"), pkgJson);
+    writeFileSync(
+      resolve(dir, "README.md"),
+      `# ${name}\n\nA custom loop adapter for [loop-bench](https://github.com/loop-eng/loop-bench).\n\n## Usage\n\n\`\`\`bash\nbench run --adapter ./${name}/adapter.ts --model claude-sonnet-4-6\n\`\`\`\n`,
+    );
+
+    console.error(pc.green(`Adapter scaffolded at ${dir}/`));
+    console.error(pc.dim("  adapter.ts   — your loop implementation"));
+    console.error(pc.dim("  package.json — adapter metadata"));
+    console.error(pc.dim("  README.md    — usage instructions"));
+    console.error(
+      pc.bold("\nNext: edit adapter.ts with your loop logic, then run:"),
+    );
+    console.error(
+      pc.cyan(`  bench run --adapter ${dir}/adapter.ts --model claude-sonnet-4-6`),
+    );
+  });
+
 program.parse();
+
+function toPascalCase(s: string): string {
+  return s
+    .split(/[-_]/)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join("");
+}

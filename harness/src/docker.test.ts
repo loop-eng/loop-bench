@@ -36,9 +36,6 @@ function makeMockDocker() {
   const mockExecInspect = vi.fn().mockResolvedValue({ ExitCode: 0 });
   const mockStream = {
     on: vi.fn((event: string, cb: (data?: Buffer) => void) => {
-      if (event === "data") {
-        setTimeout(() => cb(Buffer.from("test output")), 0);
-      }
       if (event === "end") {
         setTimeout(() => cb(), 10);
       }
@@ -46,6 +43,11 @@ function makeMockDocker() {
     }),
     destroy: vi.fn(),
   };
+  const mockDemux = vi.fn(
+    (_stream: unknown, stdoutStream: { write: (d: Buffer) => void }, _stderrStream: unknown) => {
+      setTimeout(() => stdoutStream.write(Buffer.from("test output")), 0);
+    },
+  );
   const mockExecStart = vi.fn(
     (_opts: unknown, cb: (err: null, stream: typeof mockStream) => void) => {
       cb(null, mockStream);
@@ -67,6 +69,7 @@ function makeMockDocker() {
   const mockDocker = {
     createContainer: vi.fn().mockResolvedValue(mockContainer),
     buildImage: vi.fn(),
+    modem: { demuxStream: mockDemux },
   };
 
   return { mockDocker, mockContainer, mockExec, mockExecInspect, mockStream };
@@ -208,8 +211,10 @@ describe("Sandbox", () => {
         remove: vi.fn().mockResolvedValue(undefined),
         exec: mockExec,
       };
+      const mockDemux = vi.fn();
       const mockDocker = {
         createContainer: vi.fn().mockResolvedValue(mockContainer),
+        modem: { demuxStream: mockDemux },
       };
 
       const sandbox = new Sandbox({

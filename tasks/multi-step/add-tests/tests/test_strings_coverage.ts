@@ -92,7 +92,7 @@ describe('String utils baseline verification', () => {
   });
 
   it('capitalize works correctly', () => {
-    expect(capitalize('hello world')).toBe('Hello World');
+    expect(capitalize('hello world')).toBe('Hello world');
     expect(capitalize('')).toBe('');
   });
 

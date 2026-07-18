@@ -23,6 +23,8 @@ def convergence_curve(
     title: str = "Convergence Rate by Loop Design",
 ) -> None:
     """Box plot of convergence rates for each loop design."""
+    if not results:
+        return
     groups = group_by_loop(results)
     fig, ax = plt.subplots(figsize=(10, 6))
 
@@ -94,15 +96,16 @@ def radar_chart(
     results: list[dict[str, Any]],
     output_path: str | Path,
     title: str = "Loop Design Comparison",
+    budget_limit: float = 5.0,
 ) -> None:
     """Radar chart comparing loop designs across key metrics."""
     dimensions = [
-        ("Pass Rate", "passRate", True),
-        ("Cost Eff.", "costUsd", False),
-        ("Convergence", "convergenceRate", False),
-        ("Low Drift", "driftScore", False),
-        ("Honesty", "honestyScore", True),
-        ("Low Erosion", "erosionScore", False),
+        ("Pass Rate", "passRate", True, 1.0),
+        ("Cost Eff.", "costUsd", False, budget_limit),
+        ("Convergence", "convergenceRate", False, 1.0),
+        ("Low Drift", "driftScore", False, 1.0),
+        ("Honesty", "honestyScore", True, 1.0),
+        ("Low Erosion", "erosionScore", False, 1.0),
     ]
 
     groups = group_by_loop(results)
@@ -117,10 +120,11 @@ def radar_chart(
     for i, name in enumerate(names):
         summary = summarize_group(groups[name])
         values = []
-        for _, key, higher_better in dimensions:
+        for _, key, higher_better, scale in dimensions:
             v = summary.get(key, 0.0)
+            v = min(v / scale, 1.0) if scale > 0 else v
             if not higher_better:
-                v = 1 - min(v, 1.0)
+                v = 1 - v
             values.append(min(max(v, 0), 1))
         values.append(values[0])
 

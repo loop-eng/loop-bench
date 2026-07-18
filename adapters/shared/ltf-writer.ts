@@ -30,11 +30,11 @@ export class LtfWriter {
 
   private write(event: Record<string, unknown>): void {
     const line = JSON.stringify({
+      ...event,
       ltf_version: "1.0",
       loop_id: this.loopId,
       session_id: this.sessionId,
       timestamp: new Date().toISOString(),
-      ...event,
     });
     appendFileSync(this.outputPath, line + "\n");
   }

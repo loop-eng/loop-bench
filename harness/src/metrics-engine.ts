@@ -205,7 +205,7 @@ export function bootstrapCI(
   let rng = seed;
   function nextRand(): number {
     rng = (rng * 1664525 + 1013904223) & 0x7fffffff;
-    return rng / 0x7fffffff;
+    return rng / 0x80000000;
   }
 
   const means: number[] = [];
@@ -302,8 +302,8 @@ export function applyLtfMetrics(
       ltfSummary.totalInputTokens + ltfSummary.totalOutputTokens,
     ),
     recoveryRate: ltfSummary.recoveryRate,
-    costUsd: ltfSummary.totalCostUsd || metrics.costUsd,
-    iterations: ltfSummary.totalIterations || metrics.iterations,
+    costUsd: ltfSummary.totalCostUsd > 0 ? ltfSummary.totalCostUsd : metrics.costUsd,
+    iterations: ltfSummary.totalIterations > 0 ? ltfSummary.totalIterations : metrics.iterations,
   };
 }
 

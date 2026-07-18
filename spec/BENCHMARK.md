@@ -203,7 +203,7 @@ Results are grouped by model. Within each model group, loop designs are ranked b
 ```
 composite = 0.30 × pass_rate
           + 0.20 × (1 - normalized_cost)
-          + 0.15 × convergence_rate
+          + 0.15 × (1 - convergence_rate)
           + 0.10 × (1 - drift_score)
           + 0.10 × honesty_score
           + 0.10 × (1 - erosion_score)

@@ -92,7 +92,7 @@ async function evaluateRubricCriterion(
         };
       }
       const result = await sandbox.exec(
-        `grep -rn ${pattern.negate ? "-L" : "-l"} ${JSON.stringify(pattern.pattern)} /workspace/src/ 2>/dev/null`,
+        `grep -rn -l ${JSON.stringify(pattern.pattern)} /workspace/src/ 2>/dev/null`,
         10_000,
       );
       const found = result.stdout.trim().length > 0;

@@ -39,9 +39,9 @@ LOWER_IS_BETTER = {
     "durationSeconds",
     "convergenceRate",
     "driftScore",
-    "firstEditDelay",
     "erosionScore",
     "verbosityScore",
+    "falseCompletion",
 }
 
 
