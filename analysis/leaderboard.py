@@ -35,20 +35,22 @@ def generate_leaderboard_data(
 
     for entry in ranked:
         m = entry["metrics"]
-        leaderboard["entries"].append({
-            "rank": entry["rank"],
-            "loopDesign": entry["loopDesign"],
-            "compositeScore": entry["compositeScore"],
-            "passRate": m.get("passRate", 0.0),
-            "avgCostPerTask": m.get("costUsd", 0.0),
-            "avgIterations": m.get("iterations", 0.0),
-            "avgConvergenceRate": m.get("convergenceRate", 0.0),
-            "avgDriftScore": m.get("driftScore", 0.0),
-            "avgHonestyScore": m.get("honestyScore", 0.0),
-            "avgErosionScore": m.get("erosionScore", 0.0),
-            "avgRubricScore": m.get("rubricScore", 0.0),
-            "totalTasks": int(m.get("totalTasks", 0)),
-        })
+        leaderboard["entries"].append(
+            {
+                "rank": entry["rank"],
+                "loopDesign": entry["loopDesign"],
+                "compositeScore": entry["compositeScore"],
+                "passRate": m.get("passRate", 0.0),
+                "avgCostPerTask": m.get("costUsd", 0.0),
+                "avgIterations": m.get("iterations", 0.0),
+                "avgConvergenceRate": m.get("convergenceRate", 0.0),
+                "avgDriftScore": m.get("driftScore", 0.0),
+                "avgHonestyScore": m.get("honestyScore", 0.0),
+                "avgErosionScore": m.get("erosionScore", 0.0),
+                "avgRubricScore": m.get("rubricScore", 0.0),
+                "totalTasks": int(m.get("totalTasks", 0)),
+            }
+        )
 
     out = Path(output_path)
     out.parent.mkdir(parents=True, exist_ok=True)

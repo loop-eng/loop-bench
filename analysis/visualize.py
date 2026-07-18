@@ -31,9 +31,7 @@ def convergence_curve(
     names = sorted(groups.keys())
     data = []
     for name in names:
-        values = [
-            r.get("metrics", {}).get("convergenceRate", 1.0) for r in groups[name]
-        ]
+        values = [r.get("metrics", {}).get("convergenceRate", 1.0) for r in groups[name]]
         data.append(values)
 
     bp = ax.boxplot(data, labels=names, patch_artist=True)

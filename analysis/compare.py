@@ -143,11 +143,13 @@ def rank_loop_designs(
             + 0.05 * summary.get("rubricScore", 0.0)
         )
 
-        ranked.append({
-            "loopDesign": name,
-            "compositeScore": round(composite, 4),
-            "metrics": summary,
-        })
+        ranked.append(
+            {
+                "loopDesign": name,
+                "compositeScore": round(composite, 4),
+                "metrics": summary,
+            }
+        )
 
     ranked.sort(key=lambda x: x["compositeScore"], reverse=True)
     for i, entry in enumerate(ranked):
